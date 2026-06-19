@@ -6,8 +6,11 @@
   "main": "electron/main.cjs",
   "description": "Editor STL locale con flusso di lavoro ispirato a SketchUp",
   "scripts": {
+    "prestart": "node scripts/assemble-main.cjs",
     "start": "npm run build && electron .",
+    "predev": "node scripts/assemble-main.cjs",
     "dev": "vite --host 127.0.0.1",
+    "prebuild": "node scripts/assemble-main.cjs",
     "build": "vite build",
     "test": "node --test"
   },
