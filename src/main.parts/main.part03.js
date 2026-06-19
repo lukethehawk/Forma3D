@@ -1,4 +1,34 @@
-econdo punto.');
+;
+  updateMeasurementPanel(result, preview);
+}
+
+function updateMeasurementPanel(result, preview = false) {
+  measurementResult = result;
+  ui.measureTotal.textContent = formatMillimeters(result.total);
+  ui.measureX.textContent = formatMillimeters(result.dx, true);
+  ui.measureY.textContent = formatMillimeters(result.dy, true);
+  ui.measureZ.textContent = formatMillimeters(result.dz, true);
+  const axis = result.dominantAxis.toUpperCase();
+  ui.measureAxisSummary.textContent = result.isAxisAligned
+    ? `Misura allineata con l'asse ${axis}.`
+    : `Misura 3D. Componente principale sull'asse ${axis}.`;
+  ui.measureValue.value = formatMillimeters(result.total);
+  if (preview) ui.measureAxisSummary.textContent += ' Clicca per confermare.';
+}
+
+function measureAt(clientX, clientY) {
+  const hit = raycastModel(clientX, clientY);
+  if (!hit) {
+    setStatus('Clicca un punto sulla superficie del modello.');
+    return;
+  }
+
+  if (!measurementStart || measurementEnd) {
+    clearMeasurement();
+    measurementStart = hit.point.clone();
+    drawMeasurement(measurementStart, true);
+    ui.measureAxisSummary.textContent = 'Primo punto fissato. Clicca il secondo punto.';
+    setStatus('Primo punto fissato. Ora clicca il secondo punto.');
     return;
   }
 
@@ -362,72 +392,37 @@ function drawSketchPreview(pointerPoint = null, axis = null) {
   sketchPreview = group;
 }
 
-function sketchAt(clientX, clientY) {
-  const axisStart = sketchPoints.length ? sketchPoints[sketchPoints.length - 1] : null;
-  const pick = pickWorkPoint(clientX, clientY, { axisStart });
-  if (!pick) {
-    setStatus('Clicca sul piano di lavoro o su un punto agganciabile.');
-    return;
-  }
-
-  const point = pick.point.clone();
-  if (sketchPoints.length) point.z = sketchPoints[0].z;
-
-  if (sketchPoints.length >= 3 && point.distanceTo(sketchPoints[0]) < 2.5) {
-    sketchClosed = true;
-    ui.sketchInfo.textContent = `Faccia chiusa con ${sketchPoints.length} punti. Ora puoi estruderla.`;
-    ui.applySketch.disabled = false;
-    drawSketchPreview();
-    setStatus('Faccia chiusa. Inserisci la distanza e premi Estrudi sagoma.');
-    return;
-  }
-
-  sketchPoints.push(point);
-  sketchClosed = false;
-  ui.applySketch.disabled = true;
-  ui.sketchInfo.textContent = `${sketchPoints.length} punti. ${pick.axis !== null ? `Segmento bloccato su asse ${['X', 'Y', 'Z'][pick.axis]}. ` : ''}Torna vicino al primo punto per chiudere.`;
-  drawSketchPreview();
-  setStatus('Punto aggiunto alla sagoma.');
+function applySketchLengthConstraint(point) {
+  if (!sketchPoints.length || !sketchLengthInput) return point;
+  const length = parseLengthInput(sketchLengthInput);
+  if (!Number.isFinite(length)) return point;
+  const start = sketchPoints[sketchPoints.length - 1];
+  const direction = point.clone().sub(start);
+  direction.z = 0;
+  if (direction.lengthSq() < 1e-8) return point;
+  return start.clone().add(direction.normalize().multiplyScalar(length));
 }
 
-function previewSketch(clientX, clientY) {
-  if (activeTool !== 'line' || !sketchPoints.length || sketchClosed) return;
-  const pick = pickWorkPoint(clientX, clientY, {
-    axisStart: sketchPoints[sketchPoints.length - 1],
-  });
-  if (!pick) return;
-  const point = pick.point.clone();
-  point.z = sketchPoints[0].z;
-  drawSketchPreview(point, pick.axis);
-}
-
-function applySketch() {
-  if (!sketchClosed || sketchPoints.length < 3) {
-    setStatus('Chiudi prima la sagoma tornando vicino al primo punto.');
+function updateSketchLengthReadout(point) {
+  if (!sketchPoints.length || !point) {
+    ui.measureValue.value = '-- mm';
     return;
   }
-  const height = parseDecimal(ui.sketchDepth.value, 0);
-  if (!(height > 0)) {
-    setStatus('Inserisci una distanza di estrusione maggiore di zero.');
+  const start = sketchPoints[sketchPoints.length - 1];
+  const length = point.distanceTo(start);
+  if (!sketchLengthInput && document.activeElement !== ui.measureValue) {
+    ui.measureValue.value = formatMillimeters(length);
+  }
+  ui.measureValue.classList.toggle('length-entry-active', !sketchClosed);
+}
+
+function setSketchLengthInput(value) {
+  sketchLengthInput = value.replace(/[^\d,.]/g, '');
+  ui.measureValue.value = sketchLengthInput;
+  if (!sketchLengthInput) {
+    updateSketchLengthReadout(sketchPreviewPoint);
+    if (sketchPreviewPoint) drawSketchPreview(sketchPreviewPoint, sketchPreviewAxis);
+    setStatus('Muovi il mouse o digita una lunghezza in millimetri.');
     return;
   }
-  try {
-    const geometry = createExtrudedPolygonGeometry(sketchPoints, height);
-    applyPrimitiveGeometry(
-      geometry,
-      ui.sketchOperation.value,
-      ui.sketchOperation.value === 'subtract' ? 'Sagoma estrusa e sottratta dal solido.' : 'Sagoma estrusa e unita al solido.',
-    );
-  } catch (error) {
-    setStatus(error instanceof Error ? error.message : 'Non riesco a estrudere questa sagoma.');
-  }
-}
-
-function createHoleCylinder(hole, center, radius, depth, material) {
-  return createPreviewCylinder(center, radius, depth, axisVector(hole.axis), material, hole.segments);
-}
-
-function drawHoleCreatePreview() {
-  if (!holeCreate?.center || activeTool !== 'hole') return;
-  if (holeCreatePreview) {
-    scene.remove(hole
+  const len
