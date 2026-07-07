@@ -180,6 +180,67 @@ export function combineGeometries(geometries) {
   return result;
 }
 
+function edgeKey(a, b, tolerance) {
+  const keys = [pointKey(a, tolerance), pointKey(b, tolerance)].sort();
+  return `${keys[0]}|${keys[1]}`;
+}
+
+function isOnOuterBoundary(a, b, box, tolerance) {
+  const onSameMinX = Math.abs(a.x - box.min.x) <= tolerance && Math.abs(b.x - box.min.x) <= tolerance;
+  const onSameMaxX = Math.abs(a.x - box.max.x) <= tolerance && Math.abs(b.x - box.max.x) <= tolerance;
+  const onSameMinY = Math.abs(a.y - box.min.y) <= tolerance && Math.abs(b.y - box.min.y) <= tolerance;
+  const onSameMaxY = Math.abs(a.y - box.max.y) <= tolerance && Math.abs(b.y - box.max.y) <= tolerance;
+  return onSameMinX || onSameMaxX || onSameMinY || onSameMaxY;
+}
+
+function shouldShowBoundaryEdge(a, b, box, tolerance) {
+  const longEdge = a.distanceTo(b) > 18;
+  if (longEdge && !isOnOuterBoundary(a, b, box, tolerance)) {
+    return false;
+  }
+  return true;
+}
+
+export function createDisplayEdgesGeometry(geometry, angleDegrees = 80, tolerance = DEFAULT_TOLERANCE) {
+  const position = geometry.getAttribute('position');
+  if (!position) return null;
+
+  const triangleTotal = triangleCount(geometry);
+  const box = new THREE.Box3().setFromBufferAttribute(position);
+  const threshold = Math.cos(THREE.MathUtils.degToRad(angleDegrees));
+  const edgeMap = new Map();
+
+  for (let triangle = 0; triangle < triangleTotal; triangle += 1) {
+    const points = [0, 1, 2].map((corner) => vertexAt(geometry, triangle, corner, new THREE.Vector3()));
+    const normal = triangleNormal(geometry, triangle);
+    for (const [start, end] of [[0, 1], [1, 2], [2, 0]]) {
+      const key = edgeKey(points[start], points[end], tolerance);
+      if (!edgeMap.has(key)) edgeMap.set(key, []);
+      edgeMap.get(key).push({
+        a: points[start],
+        b: points[end],
+        normal,
+      });
+    }
+  }
+
+  const positions = [];
+  for (const edges of edgeMap.values()) {
+    const [edge] = edges;
+    const isBoundary = edges.length === 1;
+    const isCrease = edges.some((current, index) =>
+      edges.slice(index + 1).some((other) => current.normal.dot(other.normal) < threshold),
+    );
+    if ((isBoundary && shouldShowBoundaryEdge(edge.a, edge.b, box, tolerance)) || isCrease) {
+      positions.push(edge.a.x, edge.a.y, edge.a.z, edge.b.x, edge.b.y, edge.b.z);
+    }
+  }
+
+  const result = new THREE.BufferGeometry();
+  result.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  return result;
+}
+
 export function createRegionGeometry(geometry, triangleIndexes, offset = 0.03) {
   const positions = [];
   for (const triangle of triangleIndexes) {

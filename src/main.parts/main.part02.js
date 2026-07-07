@@ -93,7 +93,7 @@ function updateEdges() {
   if (triangleCount(model.geometry) > MAX_EDGE_TRIANGLES) {
     return;
   }
-  edges = new THREE.LineSegments(new THREE.EdgesGeometry(model.geometry, 22), edgeMaterial);
+  edges = new THREE.LineSegments(createDisplayEdgesGeometry(model.geometry, MODEL_EDGE_ANGLE), edgeMaterial);
   edges.renderOrder = 2;
   scene.add(edges);
   requestRender();

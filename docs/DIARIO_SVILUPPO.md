@@ -122,7 +122,7 @@ repository GitHub che Pages usi **GitHub Actions** come sorgente e non
 Il controller principale usa variabili di stato semplici:
 
 - `model`: mesh Three.js principale caricata o creata.
-- `edges`: bordi visuali calcolati da `EdgesGeometry`.
+- `edges`: bordi visuali calcolati da `createDisplayEdgesGeometry()`.
 - `highlight`: overlay blu della superficie selezionata.
 - `selected`: regione complanare selezionata, con normale e triangoli.
 - `activeTool`: strumento attivo.
@@ -160,7 +160,10 @@ producono mesh pesanti.
 
 Per non appesantire la vista, `updateEdges()` crea le linee dei bordi solo sotto
 `MAX_EDGE_TRIANGLES`; sulle mesh molto dense il modello resta visibile senza la
-geometria extra delle linee.
+geometria extra delle linee. `createDisplayEdgesGeometry()` usa `MODEL_EDGE_ANGLE`
+e filtra anche edge lunghi, orizzontali e interni alle facce piane: dopo una CSG
+le superfici incise possono contenere triangoli tecnici non condivisi, e non
+devono apparire come bordi reali.
 
 ## Import STL
 

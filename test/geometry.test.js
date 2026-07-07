@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {
   combineGeometries,
+  createDisplayEdgesGeometry,
   deleteTrianglesFromGeometry,
   findCoplanarRegion,
   pushPullGeometry,
@@ -71,4 +72,11 @@ test('combineGeometries appends geometry positions without a boolean operation',
   const combined = combineGeometries([first, second]);
   assert.ok(combined);
   assert.equal(triangleCount(combined), triangleCount(first) + triangleCount(second));
+});
+
+test('createDisplayEdgesGeometry keeps the visible box outline', () => {
+  const geometry = new THREE.BoxGeometry(10, 8, 6).toNonIndexed();
+  const edges = createDisplayEdgesGeometry(geometry, 80);
+  assert.ok(edges);
+  assert.equal(edges.getAttribute('position').count, 24);
 });

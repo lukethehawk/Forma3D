@@ -18,6 +18,7 @@ import droidSerifBoldUrl from 'three/examples/fonts/droid/droid_serif_bold.typef
 import droidMonoRegularUrl from 'three/examples/fonts/droid/droid_sans_mono_regular.typeface.json?url';
 import {
   combineGeometries,
+  createDisplayEdgesGeometry,
   createRegionGeometry,
   deleteTrianglesFromGeometry,
   findCoplanarRegion,
@@ -84,7 +85,7 @@ const modelMaterial = new THREE.MeshStandardMaterial({
   polygonOffsetFactor: 1,
   polygonOffsetUnits: 1,
 });
-const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x36434a, opacity: 0.72, transparent: true });
+const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x36434a, opacity: 0.5, transparent: true });
 const highlightMaterial = new THREE.MeshBasicMaterial({
   color: 0x2c92d5,
   transparent: true,
@@ -177,6 +178,7 @@ const MAX_TEXT_BOOLEAN_TRIANGLES = 12000;
 const MAX_TEXT_BOOLEAN_TOTAL_TRIANGLES = 70000;
 const TEXT_ENGRAVE_OVERLAP = 0.4;
 const MAX_EDGE_TRIANGLES = 50000;
+const MODEL_EDGE_ANGLE = 80;
 let appBusy = false;
 let renderRequested = false;
 
