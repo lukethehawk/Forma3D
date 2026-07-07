@@ -37,6 +37,7 @@ il file come mesh triangolare e offre strumenti pratici:
 - STL: `STLLoader` e `STLExporter`.
 - Booleane mesh: `three-bvh-csg`.
 - Test: `node --test`.
+- Deploy web: GitHub Actions + GitHub Pages, pubblicando `dist`.
 
 Comandi importanti:
 
@@ -88,6 +89,32 @@ calculateMeasurement(start, end
 
 La correzione reale e' stata fatta in `src/main.parts/main.part02.js`, non nel
 file generato.
+
+## Pubblicazione web su GitHub Pages
+
+La versione web deve essere pubblicata come build Vite. Non bisogna servire la
+root del branch `main`, perche `index.html` di sviluppo punta a `/src/main.js`
+e si aspetta Vite/dev server per risolvere import, CSS e dipendenze.
+
+Sintomo della pubblicazione sbagliata: la pagina GitHub Pages mostra bottoni e
+testi con stile browser predefinito, senza layout, senza canvas 3D e senza CSS.
+
+Il workflow `.github/workflows/pages.yml` e' la fonte corretta di deploy:
+
+1. checkout del repository;
+2. setup Node 24;
+3. `npm ci`;
+4. `npm test`;
+5. `npm run build`;
+6. upload della cartella `dist`;
+7. deploy su GitHub Pages.
+
+`vite.config.js` usa `base: './'`, cosi gli asset generati in `dist` restano
+relativi e funzionano sotto `https://lukethehawk.github.io/3Deditor/`.
+
+Se dopo il push la pagina resta senza stile, controllare nelle impostazioni del
+repository GitHub che Pages usi **GitHub Actions** come sorgente e non
+`main / root`.
 
 ## Modello dati runtime
 
@@ -397,4 +424,3 @@ Shortcut principali:
 6. Eseguire `npm run build`.
 7. Se si tocca UI/canvas, provare anche `npm run dev` o `npm start`.
 8. Aggiornare questo diario quando cambiano logiche o decisioni importanti.
-

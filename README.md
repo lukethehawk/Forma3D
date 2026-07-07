@@ -18,6 +18,15 @@ npm install
 npm start
 ```
 
+## Versione web su GitHub Pages
+
+La pagina pubblica deve servire il build Vite, non i file sorgenti della root.
+Il workflow `.github/workflows/pages.yml` esegue `npm ci`, `npm test`,
+`npm run build` e pubblica la cartella `dist` su GitHub Pages.
+
+Se GitHub Pages mostra HTML senza stile o senza scena 3D, nelle impostazioni del
+repository verificare che Pages usi **GitHub Actions** come sorgente di deploy.
+
 ## Comandi principali
 
 - `Spazio`: selezione
