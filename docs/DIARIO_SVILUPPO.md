@@ -195,10 +195,16 @@ mesh principale:
 - salva snapshot se richiesto;
 - pulisce overlay e strumenti;
 - rimuove e dispone la vecchia geometria;
-- normalizza attributi e bounding volume;
+- converte la geometria a non indicizzata, normalizza attributi e bounding
+  volume;
 - crea la mesh con `modelMaterial`;
 - ricalcola vertici per snap;
 - aggiorna edges e pulsanti.
+
+`modelMaterial` usa `flatShading`: sugli STL e sui risultati delle CSG e'
+preferibile mostrare facce e cambi di piano netti. Le normali lisciate rendevano
+incisioni e tagli visivamente piatti, perche pareti e superficie superiore
+venivano illuminate come se fossero una superficie continua.
 
 `removeCurrentModel()` rimuove l'intera figura corrente, pulisce storia e stato,
 e lascia il piano vuoto. Serve per togliere la figura importata senza chiudere

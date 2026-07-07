@@ -124,6 +124,11 @@ function setModelGeometry(geometry, recordHistory = true) {
     model.geometry.dispose();
   }
 
+  if (geometry.index) {
+    const nonIndexed = geometry.toNonIndexed();
+    geometry.dispose();
+    geometry = nonIndexed;
+  }
   geometry.deleteAttribute('uv');
   geometry.computeVertexNormals();
   geometry.computeBoundingBox();

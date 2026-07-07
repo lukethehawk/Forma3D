@@ -81,6 +81,7 @@ const modelMaterial = new THREE.MeshStandardMaterial({
   roughness: 0.78,
   metalness: 0.02,
   side: THREE.DoubleSide,
+  flatShading: true,
   polygonOffset: true,
   polygonOffsetFactor: 1,
   polygonOffsetUnits: 1,
