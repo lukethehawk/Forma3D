@@ -149,6 +149,7 @@ function drawHoleCreatePreview() {
     scene.remove(holeCreatePreview);
     disposeObject(holeCreatePreview);
     holeCreatePreview = null;
+    requestRender();
   }
 
   const material = new THREE.MeshBasicMaterial({
@@ -212,6 +213,7 @@ function drawHoleMovePreview() {
     scene.remove(holeMovePreview);
     disposeObject(holeMovePreview);
     holeMovePreview = null;
+    requestRender();
   }
 
   const oldMaterial = new THREE.MeshBasicMaterial({

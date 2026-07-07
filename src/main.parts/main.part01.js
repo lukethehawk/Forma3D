@@ -49,7 +49,7 @@ camera.up.set(0, 0, 1);
 camera.position.set(120, -150, 110);
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 renderer.shadowMap.enabled = false;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
@@ -61,6 +61,7 @@ controls.mouseButtons.LEFT = null;
 controls.mouseButtons.MIDDLE = THREE.MOUSE.ROTATE;
 controls.mouseButtons.RIGHT = THREE.MOUSE.PAN;
 controls.target.set(0, 0, 15);
+controls.addEventListener('change', requestRender);
 
 const grid = new THREE.GridHelper(1000, 100, 0x8e9aa3, 0xb9c4ca);
 grid.rotation.x = Math.PI / 2;
@@ -174,6 +175,9 @@ let textPreviewRequest = 0;
 let textApplyInProgress = false;
 const MAX_TEXT_BOOLEAN_TRIANGLES = 12000;
 const MAX_TEXT_BOOLEAN_TOTAL_TRIANGLES = 70000;
+const MAX_EDGE_TRIANGLES = 50000;
+let appBusy = false;
+let renderRequested = false;
 
 const ui = {
   exportButton: document.querySelector('#export-file'),
@@ -182,6 +186,9 @@ const ui = {
   fileName: document.querySelector('#file-name'),
   status: document.querySelector('#status'),
   hint: document.querySelector('#hint'),
+  busyOverlay: document.querySelector('#busy-overlay'),
+  busyTitle: document.querySelector('#busy-title'),
+  busyMessage: document.querySelector('#busy-message'),
   emptyState: document.querySelector('#empty-state'),
   inspector: document.querySelector('#inspector'),
   panelTitle: document.querySelector('#panel-title'),
@@ -291,6 +298,37 @@ function setStatus(message) {
   ui.status.textContent = message;
 }
 
+function requestRender() {
+  if (renderRequested) return;
+  renderRequested = true;
+  requestAnimationFrame(renderFrame);
+}
+
+function renderFrame() {
+  renderRequested = false;
+  const cameraChanged = controls.update();
+  renderer.render(scene, camera);
+  if (cameraChanged) requestRender();
+}
+
+function showBusy(title, message) {
+  appBusy = true;
+  ui.busyTitle.textContent = title;
+  ui.busyMessage.textContent = message;
+  ui.busyOverlay.hidden = false;
+  document.body.classList.add('is-busy');
+  setStatus(title);
+  requestRender();
+}
+
+function hideBusy() {
+  if (!appBusy) return;
+  appBusy = false;
+  ui.busyOverlay.hidden = true;
+  document.body.classList.remove('is-busy');
+  requestRender();
+}
+
 function formatMillimeters(value, signed = false) {
   const rounded = Math.abs(value) < 0.0005 ? 0 : value;
   const prefix = signed && rounded > 0 ? '+' : '';
@@ -362,6 +400,7 @@ function clearSelection() {
     scene.remove(highlight);
     highlight.geometry.dispose();
     highlight = null;
+    requestRender();
   }
   ui.selectionLabel.textContent = 'Nessuna superficie';
   ui.selectionDetail.textContent = 'Clicca una superficie del modello.';
@@ -400,6 +439,7 @@ function addTransientOverlay(object, kind) {
     child.userData.transientOverlay = kind;
   });
   scene.add(object);
+  requestRender();
 }
 
 function clearTransientOverlays() {
@@ -411,6 +451,7 @@ function clearTransientOverlays() {
     scene.remove(overlay);
     disposeObject(overlay);
   }
+  if (overlays.length) requestRender();
   highlight = null;
   measurementGroup = null;
   holeCreatePreview = null;
@@ -430,6 +471,7 @@ function clearMeasurement(resetPanel = true) {
     scene.remove(measurementGroup);
     disposeObject(measurementGroup);
     measurementGroup = null;
+    requestRender();
   }
   if (resetPanel) {
     ui.measureTotal.textContent = '-- mm';
@@ -447,6 +489,7 @@ function clearHoleCreate() {
     scene.remove(holeCreatePreview);
     disposeObject(holeCreatePreview);
     holeCreatePreview = null;
+    requestRender();
   }
   ui.holeCreateInfo.textContent = 'Nessun punto selezionato';
   ui.holeCreateAxis.textContent = 'Clicca una superficie per impostare centro e direzione.';
@@ -464,6 +507,7 @@ function clearHoleMove() {
     scene.remove(holeMovePreview);
     disposeObject(holeMovePreview);
     holeMovePreview = null;
+    requestRender();
   }
   ui.moveHoleInfo.textContent = 'Nessun foro selezionato';
   ui.moveHoleAxis.textContent = 'Clicca la parete interna del foro.';

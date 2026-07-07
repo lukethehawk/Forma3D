@@ -408,16 +408,17 @@ async function textGeometryFromState() {
     bevelSize: parseDecimal(ui.textBevel.value, 0),
     rotationZ: parseDecimal(ui.textRotation.value, 0),
     italic: ui.textItalic.checked,
-    direction: textDirectionFromState(),
+    direction: textSurfaceNormalFromState(),
+    depthDirection: ui.textOperation.value === 'subtract' ? -1 : 1,
   });
 }
 
-function textDirectionFromState() {
+function textSurfaceNormalFromState() {
   if (!textPlacement?.normal) return new THREE.Vector3(0, 0, 1);
   const normal = textPlacement.normal.clone();
   if (normal.lengthSq() < 1e-8) normal.set(0, 0, 1);
   normal.normalize();
-  return ui.textOperation.value === 'subtract' ? normal.negate() : normal;
+  return normal;
 }
 
 function textBooleanIsSafe(geometry) {
@@ -461,6 +462,7 @@ async function drawTextPreview() {
       scene.remove(textPreview);
       disposeObject(textPreview);
       textPreview = null;
+      requestRender();
     }
     ui.applyText.disabled = true;
     setStatus(error instanceof Error ? error.message : 'Non riesco a creare questo testo.');
@@ -523,6 +525,8 @@ async function applyText() {
         return;
       }
       setStatus('Incisione testo in corso...');
+      showBusy('Incisione in corso...', 'Sto calcolando la sottrazione del testo. Interfaccia bloccata finche il solido non e pronto.');
+      await waitForNextFrame();
       await waitForNextFrame();
       applyPrimitiveGeometry(geometry, 'subtract', 'Testo 3D inciso nel solido.');
       return;
@@ -532,6 +536,7 @@ async function applyText() {
     await waitForNextFrame();
     appendGeometryToModel(geometry, 'Testo 3D applicato al solido.');
   } finally {
+    hideBusy();
     textApplyInProgress = false;
     if (textPlacement && activeTool === 'text') ui.applyText.disabled = false;
   }
@@ -542,6 +547,7 @@ function drawSketchPreview(pointerPoint = null, axis = null) {
     scene.remove(sketchPreview);
     disposeObject(sketchPreview);
     sketchPreview = null;
+    requestRender();
   }
 
   const points = [...sketchPoints];

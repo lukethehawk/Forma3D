@@ -79,6 +79,7 @@ function resize() {
   renderer.setSize(width, height, false);
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
+  requestRender();
 }
 
 document.querySelector('#open-file').addEventListener('click', () => ui.fileInput.click());
@@ -246,9 +247,11 @@ ui.undo.addEventListener('click', () => restoreFrom(undoStack, redoStack));
 ui.redo.addEventListener('click', () => restoreFrom(redoStack, undoStack));
 
 canvas.addEventListener('pointerdown', (event) => {
+  if (appBusy) return;
   pointerDown = { x: event.clientX, y: event.clientY };
 });
 canvas.addEventListener('pointerup', (event) => {
+  if (appBusy) return;
   if (!pointerDown) return;
   const movement = Math.hypot(event.clientX - pointerDown.x, event.clientY - pointerDown.y);
   pointerDown = null;
@@ -265,12 +268,17 @@ canvas.addEventListener('pointerup', (event) => {
   }
 });
 canvas.addEventListener('pointermove', (event) => {
+  if (appBusy) return;
   previewMeasurement(event.clientX, event.clientY);
   previewSketch(event.clientX, event.clientY);
 });
 canvas.addEventListener('contextmenu', (event) => event.preventDefault());
 
 window.addEventListener('keydown', (event) => {
+  if (appBusy) {
+    event.preventDefault();
+    return;
+  }
   if (event.target === ui.measureValue && activeTool === 'line') return;
   if (handleSketchLengthShortcut(event)) return;
   if (event.target.matches('input, textarea, select')) return;
@@ -317,7 +325,4 @@ new ResizeObserver(resize).observe(viewport);
 createExample();
 updateInspector();
 
-renderer.setAnimationLoop(() => {
-  controls.update();
-  renderer.render(scene, camera);
-});
+requestRender();

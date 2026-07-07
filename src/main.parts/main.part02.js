@@ -10,6 +10,7 @@ function clearBoxPlacement() {
     scene.remove(boxPreview);
     disposeObject(boxPreview);
     boxPreview = null;
+    requestRender();
   }
   ui.boxInfo.textContent = 'Clicca dove vuoi appoggiare il parallelepipedo.';
   ui.boxOffsetInputs.forEach((input) => {
@@ -24,6 +25,7 @@ function clearCylinderPlacement() {
     scene.remove(cylinderPreview);
     disposeObject(cylinderPreview);
     cylinderPreview = null;
+    requestRender();
   }
   ui.cylinderInfo.textContent = 'Clicca dove vuoi appoggiare il cilindro.';
   ui.cylinderOffsetInputs.forEach((input) => {
@@ -38,6 +40,7 @@ function clearCutPlacement() {
     scene.remove(cutPreview);
     disposeObject(cutPreview);
     cutPreview = null;
+    requestRender();
   }
   ui.cutInfo.textContent = 'Scegli forma e clicca dove vuoi togliere materiale.';
   ui.cutOffsetInputs.forEach((input) => {
@@ -53,6 +56,7 @@ function clearTextPlacement() {
     scene.remove(textPreview);
     disposeObject(textPreview);
     textPreview = null;
+    requestRender();
   }
   ui.textInfo.textContent = 'Clicca dove vuoi appoggiare il testo.';
   ui.textOffsetInputs.forEach((input) => {
@@ -71,6 +75,7 @@ function clearSketch() {
     scene.remove(sketchPreview);
     disposeObject(sketchPreview);
     sketchPreview = null;
+    requestRender();
   }
   ui.sketchInfo.textContent = 'Clicca i punti della sagoma. Torna vicino al primo punto per chiuderla.';
   updateMeasureBoxMode();
@@ -82,11 +87,16 @@ function updateEdges() {
     scene.remove(edges);
     edges.geometry.dispose();
     edges = null;
+    requestRender();
   }
   if (!model) return;
+  if (triangleCount(model.geometry) > MAX_EDGE_TRIANGLES) {
+    return;
+  }
   edges = new THREE.LineSegments(new THREE.EdgesGeometry(model.geometry, 22), edgeMaterial);
   edges.renderOrder = 2;
   scene.add(edges);
+  requestRender();
 }
 
 function updateModelActions() {
@@ -123,6 +133,7 @@ function setModelGeometry(geometry, recordHistory = true) {
   snapPoints = collectGeometryVertices(model.geometry);
   updateEdges();
   updateModelActions();
+  requestRender();
 }
 
 function snapshot() {
@@ -269,6 +280,7 @@ function fitView(direction = new THREE.Vector3(1.15, -1.45, 1)) {
   camera.updateProjectionMatrix();
   controls.target.copy(center);
   controls.update();
+  requestRender();
 }
 
 function setView(view) {

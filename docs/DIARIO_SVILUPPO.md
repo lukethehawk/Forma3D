@@ -152,6 +152,16 @@ con FOV 38 e viene riposizionata da `fitView()`.
 
 La funzione `setTool()` cambia anche il cursore e i mouse button dei controlli.
 
+Il rendering e' su richiesta, non a ciclo continuo: `requestRender()` pianifica
+un frame quando cambiano camera, viewport, modello o overlay. `OrbitControls`
+genera nuovi frame durante il movimento e lo smorzamento, poi la scena resta
+ferma. Questo riduce il carico CPU/GPU a riposo, soprattutto dopo operazioni che
+producono mesh pesanti.
+
+Per non appesantire la vista, `updateEdges()` crea le linee dei bordi solo sotto
+`MAX_EDGE_TRIANGLES`; sulle mesh molto dense il modello resta visibile senza la
+geometria extra delle linee.
+
 ## Import STL
 
 `openStl(file)`:
@@ -359,12 +369,11 @@ vecchie quando l'utente cambia valori rapidamente o resetta lo strumento.
 
 Orientamento:
 
-- in modalita rilievo, il testo estrude lungo la normale della faccia cliccata;
-- in modalita sottrai/incidi, la direzione viene invertita e quindi entra nel
-  solido;
-- su piano di lavoro senza modello la normale e' `+Z`, quindi l'incisione
-  teorica punterebbe verso `-Z`, ma l'app richiede comunque un solido per
-  sottrarre.
+- il piano del testo resta orientato sulla normale della faccia cliccata;
+- in modalita rilievo, la profondita procede verso l'esterno;
+- in modalita sottrai/incidi, solo la profondita viene invertita e quindi entra
+  nel solido: il piano delle lettere non viene ruotato di 180 gradi, evitando il
+  testo specchiato.
 
 Prestazioni:
 
@@ -373,6 +382,8 @@ Prestazioni:
 - prima dell'incisione vengono controllati i triangoli del testo e del modello:
   se la CSG sarebbe troppo pesante, l'operazione viene bloccata con un messaggio
   invece di lasciare il browser fermo.
+- durante l'incisione testo `showBusy()` mostra un overlay modale e blocca input
+  e scorciatoie finche la booleana non termina.
 
 Limiti attuali:
 

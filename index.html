@@ -482,6 +482,16 @@
       </aside>
     </main>
 
+    <div id="busy-overlay" class="busy-overlay" role="status" aria-live="polite" aria-modal="true" hidden>
+      <div class="busy-dialog">
+        <div class="busy-spinner" aria-hidden="true"></div>
+        <div>
+          <strong id="busy-title">Operazione in corso...</strong>
+          <span id="busy-message">Attendi il completamento.</span>
+        </div>
+      </div>
+    </div>
+
     <footer class="statusbar">
       <div class="history-actions">
         <button id="undo" disabled title="Annulla (Ctrl+Z)">Annulla</button>

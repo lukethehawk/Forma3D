@@ -75,6 +75,7 @@ export function createTextGeometryFromBase(base, text, font, options = {}) {
   const bevelSize = Math.max(options.bevelSize ?? 0, 0);
   const italic = Boolean(options.italic);
   const rotationZ = THREE.MathUtils.degToRad(options.rotationZ ?? 0);
+  const depthDirection = Number(options.depthDirection) < 0 ? -1 : 1;
   const curveSegments = Math.max(1, Math.min(12, Math.floor(options.curveSegments ?? 5)));
   const bevelSegments = bevelSize > 0
     ? Math.max(1, Math.min(3, Math.floor(options.bevelSegments ?? 1)))
@@ -112,9 +113,17 @@ export function createTextGeometryFromBase(base, text, font, options = {}) {
     geometry.applyMatrix4(shear);
   }
 
+  if (depthDirection < 0) {
+    geometry.scale(1, 1, -1);
+  }
+
   geometry.computeBoundingBox();
   const styledBox = geometry.boundingBox;
-  geometry.translate(-styledBox.min.x, -styledBox.min.y, -styledBox.min.z);
+  geometry.translate(
+    -styledBox.min.x,
+    -styledBox.min.y,
+    depthDirection < 0 ? -styledBox.max.z : -styledBox.min.z,
+  );
   geometry.rotateZ(rotationZ);
   geometry.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(
     new THREE.Vector3(0, 0, 1),
