@@ -87,6 +87,12 @@ function operationColor(operation) {
   return operation === 'subtract' ? 0xe46f2b : 0x28a45f;
 }
 
+function waitForNextFrame() {
+  return new Promise((resolve) => {
+    requestAnimationFrame(resolve);
+  });
+}
+
 function setPreviewMesh(previous, geometry, materialColor, kind) {
   if (previous) {
     scene.remove(previous);
@@ -143,6 +149,33 @@ function applyPrimitiveGeometry(geometry, operation, successMessage) {
     if (previous) setModelGeometry(previous, false);
     updateHistoryButtons();
     setStatus('Operazione booleana non riuscita: prova con un solido chiuso o una posizione leggermente diversa.');
+  } finally {
+    geometry.dispose();
+  }
+}
+
+function appendGeometryToModel(geometry, successMessage) {
+  if (!model) {
+    setModelGeometry(geometry, false);
+    fitView();
+    setStatus(successMessage);
+    return;
+  }
+
+  setStatus('Applicazione testo in corso...');
+  snapshot();
+  try {
+    const resultGeometry = combineGeometries([model.geometry, geometry]);
+    if (!resultGeometry) throw new Error('Nessuna geometria da combinare.');
+    setModelGeometry(resultGeometry, false);
+    updateHistoryButtons();
+    setStatus(successMessage);
+  } catch (error) {
+    console.error(`Errore unione testo: ${error?.stack ?? error}`);
+    const previous = undoStack.pop();
+    if (previous) previous.dispose();
+    updateHistoryButtons();
+    setStatus('Non riesco ad applicare il testo: prova a ridurre profondita o lunghezza.');
   } finally {
     geometry.dispose();
   }
@@ -375,7 +408,30 @@ async function textGeometryFromState() {
     bevelSize: parseDecimal(ui.textBevel.value, 0),
     rotationZ: parseDecimal(ui.textRotation.value, 0),
     italic: ui.textItalic.checked,
+    direction: textDirectionFromState(),
   });
+}
+
+function textDirectionFromState() {
+  if (!textPlacement?.normal) return new THREE.Vector3(0, 0, 1);
+  const normal = textPlacement.normal.clone();
+  if (normal.lengthSq() < 1e-8) normal.set(0, 0, 1);
+  normal.normalize();
+  return ui.textOperation.value === 'subtract' ? normal.negate() : normal;
+}
+
+function textBooleanIsSafe(geometry) {
+  const textTriangles = triangleCount(geometry);
+  const modelTriangles = model ? triangleCount(model.geometry) : 0;
+  if (textTriangles > MAX_TEXT_BOOLEAN_TRIANGLES) {
+    setStatus(`Testo troppo complesso per incidere (${Math.round(textTriangles)} triangoli). Riduci testo, smusso o font.`);
+    return false;
+  }
+  if (modelTriangles + textTriangles > MAX_TEXT_BOOLEAN_TOTAL_TRIANGLES) {
+    setStatus(`Incisione troppo pesante per il browser (${Math.round(modelTriangles + textTriangles)} triangoli). Riduci il modello o il testo.`);
+    return false;
+  }
+  return true;
 }
 
 async function drawTextPreview() {
@@ -412,7 +468,10 @@ async function drawTextPreview() {
 }
 
 function setTextPoint(pick) {
-  textPlacement = { basePoint: pick.point.clone() };
+  textPlacement = {
+    basePoint: pick.point.clone(),
+    normal: pick.normal.clone(),
+  };
   ui.textInfo.textContent = `Inizio testo X ${pick.point.x.toFixed(2)}, Y ${pick.point.y.toFixed(2)}, Z ${pick.point.z.toFixed(2)} mm - snap ${pick.snapKind}.`;
   ui.textOffsetInputs.forEach((input) => {
     input.value = '0';
@@ -431,22 +490,51 @@ function textAt(clientX, clientY) {
 }
 
 async function applyText() {
+  if (textApplyInProgress) return;
+  textApplyInProgress = true;
+  ui.applyText.disabled = true;
+
   let geometry = null;
   try {
     geometry = await textGeometryFromState();
   } catch (error) {
     setStatus(error instanceof Error ? error.message : 'Non riesco a creare questo testo.');
+    textApplyInProgress = false;
+    if (textPlacement && activeTool === 'text') ui.applyText.disabled = false;
     return;
   }
   if (!geometry) {
     setStatus('Clicca prima il punto di partenza del testo.');
+    textApplyInProgress = false;
+    if (textPlacement && activeTool === 'text') ui.applyText.disabled = false;
     return;
   }
-  applyPrimitiveGeometry(
-    geometry,
-    ui.textOperation.value,
-    ui.textOperation.value === 'subtract' ? 'Testo 3D sottratto dal solido.' : 'Testo 3D unito al solido.',
-  );
+
+  const operation = ui.textOperation.value;
+  try {
+    if (operation === 'subtract') {
+      if (!model) {
+        setStatus('Per incidere testo serve prima un solido di partenza.');
+        geometry.dispose();
+        return;
+      }
+      if (!textBooleanIsSafe(geometry)) {
+        geometry.dispose();
+        return;
+      }
+      setStatus('Incisione testo in corso...');
+      await waitForNextFrame();
+      applyPrimitiveGeometry(geometry, 'subtract', 'Testo 3D inciso nel solido.');
+      return;
+    }
+
+    setStatus('Applicazione testo in rilievo in corso...');
+    await waitForNextFrame();
+    appendGeometryToModel(geometry, 'Testo 3D applicato al solido.');
+  } finally {
+    textApplyInProgress = false;
+    if (textPlacement && activeTool === 'text') ui.applyText.disabled = false;
+  }
 }
 
 function drawSketchPreview(pointerPoint = null, axis = null) {

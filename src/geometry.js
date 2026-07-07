@@ -22,6 +22,12 @@ function triangleNormal(geometry, triangleIndex, target = new THREE.Vector3()) {
   return target.subVectors(b, a).cross(new THREE.Vector3().subVectors(c, a)).normalize();
 }
 
+export function triangleCount(geometry) {
+  const position = geometry.getAttribute('position');
+  if (!position) return 0;
+  return (geometry.getIndex()?.count ?? position.count) / 3;
+}
+
 function pointKey(point, tolerance = DEFAULT_TOLERANCE) {
   return [
     Math.round(point.x / tolerance),
@@ -132,6 +138,36 @@ export function deleteTrianglesFromGeometry(geometry, triangleIndexes) {
       point.fromBufferAttribute(position, vertex);
       positions.push(point.x, point.y, point.z);
     }
+  }
+
+  if (!positions.length) return null;
+
+  const result = new THREE.BufferGeometry();
+  result.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  result.computeVertexNormals();
+  result.computeBoundingBox();
+  result.computeBoundingSphere();
+  return result;
+}
+
+export function combineGeometries(geometries) {
+  const positions = [];
+  const point = new THREE.Vector3();
+
+  for (const geometry of geometries) {
+    const source = geometry.index ? geometry.toNonIndexed() : geometry;
+    const position = source.getAttribute('position');
+    if (!position) {
+      if (source !== geometry) source.dispose();
+      continue;
+    }
+
+    for (let index = 0; index < position.count; index += 1) {
+      point.fromBufferAttribute(position, index);
+      positions.push(point.x, point.y, point.z);
+    }
+
+    if (source !== geometry) source.dispose();
   }
 
   if (!positions.length) return null;

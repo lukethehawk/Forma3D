@@ -307,7 +307,8 @@ Le primitive sono create in `src/primitives.js`.
 - `createExtrudedPolygonGeometry(points, height)`: estrude una sagoma 2D chiusa.
 - `createTextGeometryFromBase(base, text, font, options)`: genera testo 3D
   estruso usando `TextGeometry`, normalizza l'angolo basso sinistro sul punto
-  cliccato, applica larghezza lettere, corsivo simulato, rotazione e profondita.
+  cliccato, applica larghezza lettere, corsivo simulato, rotazione, profondita
+  e direzione di estrusione arbitraria.
 
 `applyPrimitiveGeometry(geometry, operation, successMessage)`:
 
@@ -316,6 +317,12 @@ Le primitive sono create in `src/primitives.js`.
 - altrimenti chiama `booleanGeometry()`.
 
 `booleanGeometry()` usa `three-bvh-csg` con `ADDITION` o `SUBTRACTION`.
+
+Per il testo in rilievo sul modello si usa invece `combineGeometries()`:
+concatena i vertici del modello e della scritta senza booleana. E' molto piu'
+rapido e riduce il rischio di blocchi del browser; il compromesso e' che resta
+una mesh unificata ma non una vera unione CSG senza facce interne. Per incisione
+testo si mantiene la sottrazione booleana per ottenere un taglio reale.
 
 ## Strumento Testo 3D
 
@@ -326,7 +333,7 @@ Workflow:
 
 1. attivare `Testo` o premere `A`;
 2. cliccare il punto di appoggio, interpretato come angolo basso sinistro del
-   testo;
+   testo; viene salvata anche la normale della faccia cliccata;
 3. modificare il pannello a destra;
 4. l'anteprima wireframe si aggiorna in tempo reale;
 5. applicare come somma al solido oppure sottrazione/incisione.
@@ -350,15 +357,31 @@ carica con `FontLoader.loadAsync()` solo quando servono. I font caricati vengono
 messi in `textFontCache`; `textPreviewRequest` invalida anteprime asincrone
 vecchie quando l'utente cambia valori rapidamente o resetta lo strumento.
 
+Orientamento:
+
+- in modalita rilievo, il testo estrude lungo la normale della faccia cliccata;
+- in modalita sottrai/incidi, la direzione viene invertita e quindi entra nel
+  solido;
+- su piano di lavoro senza modello la normale e' `+Z`, quindi l'incisione
+  teorica punterebbe verso `-Z`, ma l'app richiede comunque un solido per
+  sottrarre.
+
+Prestazioni:
+
+- le curve del testo usano segmenti moderati per non generare triangoli inutili;
+- `textApplyInProgress` evita doppie applicazioni durante un click ripetuto;
+- prima dell'incisione vengono controllati i triangoli del testo e del modello:
+  se la CSG sarebbe troppo pesante, l'operazione viene bloccata con un messaggio
+  invece di lasciare il browser fermo.
+
 Limiti attuali:
 
-- il testo e' orientato sul piano XY e viene estruso lungo Z;
 - il corsivo e' una trasformazione geometrica, non una vera variante italic del
   font;
 - la larghezza lettere scala orizzontalmente tutto il testo, quindi modifica
   anche la spaziatura visiva;
-- incisione e unione usano sempre le booleane mesh, quindi valgono gli stessi
-  limiti delle altre operazioni su STL sporchi o non chiusi.
+- l'incisione usa una booleana mesh, quindi valgono gli stessi limiti delle
+  altre operazioni su STL sporchi o non chiusi.
 
 ## Strumento Linea
 

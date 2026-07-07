@@ -1,7 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import { deleteTrianglesFromGeometry, findCoplanarRegion, pushPullGeometry } from '../src/geometry.js';
+import {
+  combineGeometries,
+  deleteTrianglesFromGeometry,
+  findCoplanarRegion,
+  pushPullGeometry,
+  triangleCount,
+} from '../src/geometry.js';
 
 function findTopTriangle(geometry) {
   const position = geometry.getAttribute('position');
@@ -50,4 +56,19 @@ test('deleteTrianglesFromGeometry returns null when no triangles remain', () => 
     0, 1, 0,
   ], 3));
   assert.equal(deleteTrianglesFromGeometry(geometry, [0]), null);
+});
+
+test('triangleCount supports indexed and non-indexed geometry', () => {
+  const indexed = new THREE.BoxGeometry(10, 8, 6);
+  const nonIndexed = indexed.toNonIndexed();
+  assert.equal(triangleCount(indexed), 12);
+  assert.equal(triangleCount(nonIndexed), 12);
+});
+
+test('combineGeometries appends geometry positions without a boolean operation', () => {
+  const first = new THREE.BoxGeometry(10, 8, 6);
+  const second = new THREE.BoxGeometry(2, 2, 2).toNonIndexed();
+  const combined = combineGeometries([first, second]);
+  assert.ok(combined);
+  assert.equal(triangleCount(combined), triangleCount(first) + triangleCount(second));
 });

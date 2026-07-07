@@ -64,3 +64,19 @@ test('createTextGeometryFromBase creates extruded text from the picked base poin
   assert.ok(geometry.boundingBox.max.x - geometry.boundingBox.min.x > 10);
 });
 
+test('createTextGeometryFromBase extrudes text along the requested direction', () => {
+  const geometry = createTextGeometryFromBase(
+    new THREE.Vector3(4, 5, 2),
+    'A',
+    testFont,
+    {
+      size: 10,
+      depth: 3,
+      direction: new THREE.Vector3(0, 0, -1),
+    },
+  );
+  geometry.computeBoundingBox();
+  assert.equal(Math.round(geometry.boundingBox.max.z), 2);
+  assert.equal(Math.round(geometry.boundingBox.min.z), -1);
+});
+

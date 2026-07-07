@@ -106,6 +106,7 @@ function setModelGeometry(geometry, recordHistory = true) {
   clearBoxPlacement();
   clearCylinderPlacement();
   clearCutPlacement();
+  clearTextPlacement();
   clearSketch();
 
   if (model) {

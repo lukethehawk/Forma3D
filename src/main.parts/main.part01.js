@@ -17,10 +17,12 @@ import droidSerifRegularUrl from 'three/examples/fonts/droid/droid_serif_regular
 import droidSerifBoldUrl from 'three/examples/fonts/droid/droid_serif_bold.typeface.json?url';
 import droidMonoRegularUrl from 'three/examples/fonts/droid/droid_sans_mono_regular.typeface.json?url';
 import {
+  combineGeometries,
   createRegionGeometry,
   deleteTrianglesFromGeometry,
   findCoplanarRegion,
   pushPullGeometry,
+  triangleCount,
 } from './geometry.js';
 import { calculateMeasurement } from './measurement.js';
 import { detectCylindricalHole } from './hole-detection.js';
@@ -169,6 +171,9 @@ const textFontSources = {
 };
 const textFontCache = new Map();
 let textPreviewRequest = 0;
+let textApplyInProgress = false;
+const MAX_TEXT_BOOLEAN_TRIANGLES = 12000;
+const MAX_TEXT_BOOLEAN_TOTAL_TRIANGLES = 70000;
 
 const ui = {
   exportButton: document.querySelector('#export-file'),

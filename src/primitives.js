@@ -75,17 +75,26 @@ export function createTextGeometryFromBase(base, text, font, options = {}) {
   const bevelSize = Math.max(options.bevelSize ?? 0, 0);
   const italic = Boolean(options.italic);
   const rotationZ = THREE.MathUtils.degToRad(options.rotationZ ?? 0);
+  const curveSegments = Math.max(1, Math.min(12, Math.floor(options.curveSegments ?? 5)));
+  const bevelSegments = bevelSize > 0
+    ? Math.max(1, Math.min(3, Math.floor(options.bevelSegments ?? 1)))
+    : 0;
+  const direction = options.direction?.isVector3
+    ? options.direction.clone()
+    : new THREE.Vector3(0, 0, 1);
+  if (direction.lengthSq() < 1e-8) direction.set(0, 0, 1);
+  direction.normalize();
 
   const geometry = ensureNonIndexed(new TextGeometry(content, {
     font,
     size,
     depth,
-    curveSegments: 12,
+    curveSegments,
     steps: 1,
     bevelEnabled: bevelSize > 0,
     bevelThickness: bevelSize,
     bevelSize,
-    bevelSegments: bevelSize > 0 ? 2 : 0,
+    bevelSegments,
   }));
 
   geometry.computeBoundingBox();
@@ -107,6 +116,10 @@ export function createTextGeometryFromBase(base, text, font, options = {}) {
   const styledBox = geometry.boundingBox;
   geometry.translate(-styledBox.min.x, -styledBox.min.y, -styledBox.min.z);
   geometry.rotateZ(rotationZ);
+  geometry.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(
+    new THREE.Vector3(0, 0, 1),
+    direction,
+  ));
   geometry.translate(base.x, base.y, base.z);
 
   return normalizeGeometry(geometry);
