@@ -38,6 +38,51 @@ export function createCylinderGeometryFromBase(center, radius, height, axis = ne
   return normalizeGeometry(geometry);
 }
 
+export function createConeGeometryFromBase(center, radius, height, axis = new THREE.Vector3(0, 0, 1), segments = 64) {
+  const safeRadius = Math.max(radius, 0.05);
+  const safeHeight = Math.max(height, 0.1);
+  const direction = axis.clone().normalize();
+  const geometry = ensureNonIndexed(new THREE.ConeGeometry(safeRadius, safeHeight, segments));
+  geometry.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction));
+  geometry.translate(
+    center.x + direction.x * safeHeight / 2,
+    center.y + direction.y * safeHeight / 2,
+    center.z + direction.z * safeHeight / 2,
+  );
+  return normalizeGeometry(geometry);
+}
+
+export function createPyramidGeometryFromBase(center, size, height, axis = new THREE.Vector3(0, 0, 1)) {
+  const safeSize = new THREE.Vector2(
+    Math.max(size.x, 0.1),
+    Math.max(size.y, 0.1),
+  );
+  const safeHeight = Math.max(height, 0.1);
+  const direction = axis.clone().normalize();
+  const baseX = new THREE.Vector3(1, 0, 0);
+  if (Math.abs(baseX.dot(direction)) > 0.95) baseX.set(0, 1, 0);
+  baseX.addScaledVector(direction, -baseX.dot(direction)).normalize();
+  const baseY = direction.clone().cross(baseX).normalize();
+  const corners = [
+    center.clone().addScaledVector(baseX, -safeSize.x / 2).addScaledVector(baseY, -safeSize.y / 2),
+    center.clone().addScaledVector(baseX, safeSize.x / 2).addScaledVector(baseY, -safeSize.y / 2),
+    center.clone().addScaledVector(baseX, safeSize.x / 2).addScaledVector(baseY, safeSize.y / 2),
+    center.clone().addScaledVector(baseX, -safeSize.x / 2).addScaledVector(baseY, safeSize.y / 2),
+  ];
+  const apex = center.clone().addScaledVector(direction, safeHeight);
+  const positions = [
+    corners[0], corners[2], corners[1],
+    corners[0], corners[3], corners[2],
+    corners[0], corners[1], apex,
+    corners[1], corners[2], apex,
+    corners[2], corners[3], apex,
+    corners[3], corners[0], apex,
+  ].flatMap((point) => [point.x, point.y, point.z]);
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  return normalizeGeometry(geometry);
+}
+
 export function createExtrudedPolygonGeometry(points, height) {
   const { shape, origin, xAxis, yAxis, normal } = shapeFromPlanarPoints(points);
 

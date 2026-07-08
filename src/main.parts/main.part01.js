@@ -36,8 +36,10 @@ import {
 } from './snapping.js';
 import {
   createBoxGeometryFromBase,
+  createConeGeometryFromBase,
   createCylinderGeometryFromBase,
   createExtrudedPolygonGeometry,
+  createPyramidGeometryFromBase,
   createPolygonFaceGeometry,
   createTextGeometryFromBase,
 } from './primitives.js';
@@ -124,6 +126,10 @@ let boxPlacement = null;
 let boxPreview = null;
 let cylinderPlacement = null;
 let cylinderPreview = null;
+let conePlacement = null;
+let conePreview = null;
+let pyramidPlacement = null;
+let pyramidPreview = null;
 let cutPlacement = null;
 let cutPreview = null;
 let textPlacement = null;
@@ -194,6 +200,9 @@ const ui = {
   exportButton: document.querySelector('#export-file'),
   repairModelButton: document.querySelector('#repair-model'),
   removeModelButton: document.querySelector('#remove-model'),
+  optionsMenuButton: document.querySelector('#options-menu-button'),
+  optionsMenu: document.querySelector('#options-menu'),
+  languageSelect: document.querySelector('#language-select'),
   fileInput: document.querySelector('#file-input'),
   fileName: document.querySelector('#file-name'),
   status: document.querySelector('#status'),
@@ -252,6 +261,31 @@ const ui = {
     document.querySelector('#cylinder-offset-z'),
   ],
   applyCylinder: document.querySelector('#apply-cylinder'),
+  coneForm: document.querySelector('#cone-form'),
+  coneInfo: document.querySelector('#cone-info'),
+  coneDiameter: document.querySelector('#cone-diameter'),
+  coneHeight: document.querySelector('#cone-height'),
+  coneAxis: document.querySelector('#cone-axis'),
+  coneOperation: document.querySelector('#cone-operation'),
+  coneOffsetInputs: [
+    document.querySelector('#cone-offset-x'),
+    document.querySelector('#cone-offset-y'),
+    document.querySelector('#cone-offset-z'),
+  ],
+  applyCone: document.querySelector('#apply-cone'),
+  pyramidForm: document.querySelector('#pyramid-form'),
+  pyramidInfo: document.querySelector('#pyramid-info'),
+  pyramidWidth: document.querySelector('#pyramid-width'),
+  pyramidDepth: document.querySelector('#pyramid-depth'),
+  pyramidHeight: document.querySelector('#pyramid-height'),
+  pyramidAxis: document.querySelector('#pyramid-axis'),
+  pyramidOperation: document.querySelector('#pyramid-operation'),
+  pyramidOffsetInputs: [
+    document.querySelector('#pyramid-offset-x'),
+    document.querySelector('#pyramid-offset-y'),
+    document.querySelector('#pyramid-offset-z'),
+  ],
+  applyPyramid: document.querySelector('#apply-pyramid'),
   cutForm: document.querySelector('#cut-form'),
   cutInfo: document.querySelector('#cut-info'),
   cutShape: document.querySelector('#cut-shape'),
@@ -322,6 +356,257 @@ const ui = {
 
 function setStatus(message) {
   ui.status.textContent = message;
+}
+
+const languageText = {
+  it: {
+    title: 'Forma 3D - Editor STL',
+    open: 'Apri STL',
+    remove: 'Rimuovi modello',
+    options: 'Opzioni',
+    language: 'Lingua',
+    repair: 'Ripara mesh',
+    export: 'Esporta STL',
+    select: 'Seleziona',
+    pushpull: 'Spingi/Tira',
+    solids: 'Solidi',
+    booleans: 'Booleane',
+    box: 'Box',
+    cylinder: 'Cilindro',
+    cone: 'Cono',
+    pyramid: 'Piramide',
+    text: 'Testo 3D',
+    cut: 'Sottrai',
+    hole: 'Foro',
+    movehole: 'Sposta foro',
+    line: 'Linea',
+    measure: 'Misura',
+    transform: 'Trasforma',
+    orbit: 'Orbita',
+    pan: 'Panoramica',
+    zoomfit: 'Inquadra',
+  },
+  en: {
+    title: 'Forma 3D - STL Editor',
+    open: 'Open STL',
+    remove: 'Remove model',
+    options: 'Options',
+    language: 'Language',
+    repair: 'Repair mesh',
+    export: 'Export STL',
+    select: 'Select',
+    pushpull: 'Push/Pull',
+    solids: 'Solids',
+    booleans: 'Booleans',
+    box: 'Box',
+    cylinder: 'Cylinder',
+    cone: 'Cone',
+    pyramid: 'Pyramid',
+    text: '3D Text',
+    cut: 'Subtract',
+    hole: 'Hole',
+    movehole: 'Move hole',
+    line: 'Line',
+    measure: 'Measure',
+    transform: 'Transform',
+    orbit: 'Orbit',
+    pan: 'Pan',
+    zoomfit: 'Zoom fit',
+  },
+};
+
+const staticTranslations = {
+  en: {
+    'Modello senza titolo': 'Untitled model',
+    'Apri un file STL': 'Open an STL file',
+    'oppure prova subito sul blocco di esempio': 'or start with the example block',
+    'Clic sinistro: seleziona Â· Rotellina premuta: orbita Â· Rotellina: zoom Â· Tasto destro: panoramica': 'Left click: select · Middle drag: orbit · Wheel: zoom · Right button: pan',
+    ALTO: 'TOP',
+    FRONTE: 'FRONT',
+    STRUMENTO: 'TOOL',
+    Distanza: 'Distance',
+    'Valore positivo: tira. Valore negativo: spingi.': 'Positive value: pull. Negative value: push.',
+    'Applica Spingi/Tira': 'Apply Push/Pull',
+    'Centro foro': 'Hole center',
+    'Nessun punto selezionato': 'No point selected',
+    'Clicca una faccia: il foro entra lungo la normale della superficie.': 'Click a face: the hole follows the surface normal.',
+    'Diametro foro': 'Hole diameter',
+    'Profondita foro': 'Hole depth',
+    'Asse bloccato': 'Locked axis',
+    'Applica foro': 'Apply hole',
+    Ricomincia: 'Restart',
+    'Foro da spostare': 'Hole to move',
+    'Clicca la parete interna del foro da spostare.': 'Click the inner wall of the hole to move.',
+    'Nuovo centro': 'New center',
+    'Sposta foro': 'Move hole',
+    'Punto base': 'Base point',
+    'Clicca dove vuoi appoggiare il parallelepipedo.': 'Click where you want to place the box.',
+    Operazione: 'Operation',
+    'Somma al solido': 'Add to solid',
+    'Sottrai dal solido': 'Subtract from solid',
+    'Larghezza X': 'Width X',
+    'Profondita Y': 'Depth Y',
+    'Altezza Z': 'Height Z',
+    'Spostamento X': 'Offset X',
+    'Spostamento Y': 'Offset Y',
+    'Spostamento Z': 'Offset Z',
+    'Applica box': 'Apply box',
+    'Centro base': 'Base center',
+    'Clicca dove vuoi appoggiare il cilindro.': 'Click where you want to place the cylinder.',
+    'Clicca dove vuoi appoggiare il cono.': 'Click where you want to place the cone.',
+    'Clicca dove vuoi appoggiare la piramide.': 'Click where you want to place the pyramid.',
+    'Asse su faccia usa la normale della superficie cliccata.': 'Face axis uses the clicked surface normal.',
+    Asse: 'Axis',
+    'Asse della faccia': 'Face axis',
+    'Asse Z': 'Z axis',
+    'Asse X': 'X axis',
+    'Asse Y': 'Y axis',
+    Diametro: 'Diameter',
+    'Diametro base': 'Base diameter',
+    'Altezza / profondita': 'Height / depth',
+    Altezza: 'Height',
+    'Applica cilindro': 'Apply cylinder',
+    'Applica cono': 'Apply cone',
+    'La base rettangolare resta centrata sul punto scelto.': 'The rectangular base stays centered on the picked point.',
+    'Base X': 'Base X',
+    'Base Y': 'Base Y',
+    'Applica piramide': 'Apply pyramid',
+    'Figura da sottrarre': 'Shape to subtract',
+    'Scegli forma e clicca dove vuoi togliere materiale.': 'Choose a shape and click where you want to remove material.',
+    'Anteprima arancione: volume che verra rimosso dallo STL.': 'Orange preview: volume that will be removed from the STL.',
+    Forma: 'Shape',
+    'Box / parallelepipedo': 'Box',
+    Cilindro: 'Cylinder',
+    'Asse cilindro': 'Cylinder axis',
+    'Entra nella faccia cliccata': 'Enter the clicked face',
+    'Profondita taglio': 'Cut depth',
+    'Per scavare dentro una faccia, clicca la faccia e usa gli offset per centrare il taglio.': 'To carve into a face, click the face and use offsets to center the cut.',
+    'Sottrai dallo STL': 'Subtract from STL',
+    Guide: 'Guides',
+    'Clicca punti, vertici e punti medi per creare linee guida e facce.': 'Click points, vertices and midpoints to create guides and faces.',
+    'Le linee sono elementi di costruzione: gli altri strumenti possono agganciarsi a estremi, midpoint e segmenti.': 'Lines are construction elements: other tools can snap to endpoints, midpoints and segments.',
+    'Piano disegno': 'Drawing plane',
+    'Auto 3D': '3D auto',
+    'XY orizzontale': 'Horizontal XY',
+    'XZ verticale': 'Vertical XZ',
+    'YZ verticale': 'Vertical YZ',
+    'Aggancia assi e parallele': 'Snap axes and parallels',
+    'Auto 3D aggancia i punti reali anche su piani diversi. Quando le guide chiudono un contorno, la faccia appare in verde.': '3D auto snaps real points across planes. When guides close an outline, the face appears in green.',
+    'Applica facce': 'Apply faces',
+    'Nuova linea': 'New line',
+    'Punto inizio testo': 'Text start point',
+    'Clicca dove vuoi appoggiare il testo.': 'Click where you want to place the text.',
+    "Il punto cliccato e' l'angolo basso sinistro del testo.": 'The clicked point is the lower-left corner of the text.',
+    Testo: 'Text',
+    Font: 'Font',
+    Bold: 'Bold',
+    Corsivo: 'Italic',
+    'Sottrai / incidi nel solido': 'Subtract / engrave into solid',
+    'Altezza lettere': 'Letter height',
+    Profondita: 'Depth',
+    'Larghezza lettere': 'Letter width',
+    'Smusso bordo': 'Edge bevel',
+    'Rotazione Z': 'Z rotation',
+    'Applica testo 3D': 'Apply 3D text',
+    'Modello intero': 'Whole model',
+    'Trasforma la mesh corrente': 'Transform the current mesh',
+    'Le modifiche vengono applicate ai vertici, quindi restano compatibili con STL e booleane successive.': 'Changes are applied to vertices, so they remain compatible with STL and later booleans.',
+    'Sposta X': 'Move X',
+    'Sposta Y': 'Move Y',
+    'Sposta Z': 'Move Z',
+    'Ruota X': 'Rotate X',
+    'Ruota Y': 'Rotate Y',
+    'Ruota Z': 'Rotate Z',
+    'Scala uniforme': 'Uniform scale',
+    'Rotazione e scala avvengono attorno al centro del modello.': 'Rotation and scale happen around the model center.',
+    'Applica trasformazione': 'Apply transform',
+    'Misure': 'Measurements',
+    Totale: 'Total',
+    'Annulla': 'Cancel',
+    'Ripristina': 'Redo',
+    Pronto: 'Ready',
+  },
+};
+
+function translateStaticText(language) {
+  const translations = staticTranslations[language];
+  const elements = document.querySelectorAll([
+    '.tool-form label',
+    '.tool-form button',
+    '.tool-form option',
+    '.hole-readout span',
+    '.hole-readout strong',
+    '.hole-readout small',
+    '#empty-state strong',
+    '#empty-state span',
+    '#hint',
+    '.view-cube button',
+    '.eyebrow',
+    '.measure-total span',
+    '.secondary-button',
+  ].join(','));
+  elements.forEach((element) => {
+    if (!element.dataset.i18nSource) element.dataset.i18nSource = element.textContent.trim();
+    const source = element.dataset.i18nSource;
+    element.textContent = translations?.[source] ?? source;
+  });
+}
+
+function setText(selector, value) {
+  const element = document.querySelector(selector);
+  if (element) element.textContent = value;
+}
+
+function setToolText(tool, value) {
+  document.querySelectorAll(`[data-tool="${tool}"]`).forEach((element) => {
+    const label = element.querySelector('span');
+    if (label) label.textContent = value;
+    else element.textContent = value;
+  });
+}
+
+function setButtonHtml(selector, icon, value, withCaret = false) {
+  const element = document.querySelector(selector);
+  if (!element) return;
+  element.innerHTML = icon
+    ? `<span class="button-icon">${icon}</span> ${value}`
+    : `${value}${withCaret ? ' <span class="menu-caret" aria-hidden="true">›</span>' : ''}`;
+}
+
+function applyLanguage(language) {
+  const dictionary = languageText[language] ?? languageText.it;
+  document.documentElement.lang = language;
+  document.title = dictionary.title;
+  localStorage.setItem('forma3d-language', language);
+  ui.languageSelect.value = language;
+  translateStaticText(language);
+  setButtonHtml('#open-file', 'O', dictionary.open);
+  setButtonHtml('#remove-model', 'X', dictionary.remove);
+  setButtonHtml('#options-menu-button', '', dictionary.options, true);
+  setText('label[for="language-select"]', dictionary.language);
+  setButtonHtml('#repair-model', 'R', dictionary.repair);
+  setButtonHtml('#export-file', 'E', dictionary.export);
+  setText('.tool-menu:nth-of-type(1) .tool-menu-trigger span', dictionary.solids);
+  setText('.tool-menu:nth-of-type(2) .tool-menu-trigger span', dictionary.booleans);
+  [
+    'select',
+    'pushpull',
+    'box',
+    'cylinder',
+    'cone',
+    'pyramid',
+    'text',
+    'cut',
+    'hole',
+    'movehole',
+    'line',
+    'measure',
+    'transform',
+    'orbit',
+    'pan',
+    'zoomfit',
+  ].forEach((tool) => setToolText(tool, dictionary[tool]));
+  updateInspector();
 }
 
 function requestRender() {
@@ -492,6 +777,8 @@ function clearTransientOverlays() {
   holeMovePreview = null;
   boxPreview = null;
   cylinderPreview = null;
+  conePreview = null;
+  pyramidPreview = null;
   cutPreview = null;
   textPreview = null;
   transformPreview = null;

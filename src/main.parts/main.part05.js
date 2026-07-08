@@ -90,7 +90,21 @@ ui.fileInput.addEventListener('change', (event) => {
 });
 ui.removeModelButton.addEventListener('click', removeCurrentModel);
 ui.repairModelButton.addEventListener('click', repairCurrentMesh);
-document.querySelector('#export-file').addEventListener('click', exportStl);
+ui.exportButton.addEventListener('click', exportStl);
+ui.optionsMenuButton.addEventListener('click', () => {
+  const nextHidden = !ui.optionsMenu.hidden;
+  ui.optionsMenu.hidden = nextHidden;
+  ui.optionsMenuButton.setAttribute('aria-expanded', String(!nextHidden));
+});
+document.addEventListener('click', (event) => {
+  if (ui.optionsMenu.hidden) return;
+  if (ui.optionsMenu.contains(event.target) || ui.optionsMenuButton.contains(event.target)) return;
+  ui.optionsMenu.hidden = true;
+  ui.optionsMenuButton.setAttribute('aria-expanded', 'false');
+});
+ui.languageSelect.addEventListener('change', () => {
+  applyLanguage(ui.languageSelect.value);
+});
 ui.applyTransform.addEventListener('click', transformCurrentModel);
 [
   ...ui.transformTranslateInputs,
@@ -100,7 +114,7 @@ ui.applyTransform.addEventListener('click', transformCurrentModel);
   input.addEventListener('input', drawTransformPreview);
   input.addEventListener('change', drawTransformPreview);
 });
-document.querySelectorAll('.tool').forEach((button) => {
+document.querySelectorAll('.tool[data-tool]').forEach((button) => {
   button.addEventListener('click', () => setTool(button.dataset.tool));
 });
 document.querySelectorAll('[data-view]').forEach((button) => {
@@ -163,6 +177,43 @@ ui.applyCylinder.addEventListener('click', (event) => {
 document.querySelector('#reset-cylinder').addEventListener('click', () => {
   clearCylinderPlacement();
   setStatus('Clicca il centro di appoggio del cilindro.');
+});
+[
+  ui.coneDiameter,
+  ui.coneHeight,
+  ui.coneAxis,
+  ui.coneOperation,
+  ...ui.coneOffsetInputs,
+].forEach((input) => {
+  input.addEventListener('input', drawConePreview);
+  input.addEventListener('change', drawConePreview);
+});
+ui.applyCone.addEventListener('click', (event) => {
+  event.preventDefault();
+  applyCone();
+});
+document.querySelector('#reset-cone').addEventListener('click', () => {
+  clearConePlacement();
+  setStatus('Clicca il centro di appoggio del cono.');
+});
+[
+  ui.pyramidWidth,
+  ui.pyramidDepth,
+  ui.pyramidHeight,
+  ui.pyramidAxis,
+  ui.pyramidOperation,
+  ...ui.pyramidOffsetInputs,
+].forEach((input) => {
+  input.addEventListener('input', drawPyramidPreview);
+  input.addEventListener('change', drawPyramidPreview);
+});
+ui.applyPyramid.addEventListener('click', (event) => {
+  event.preventDefault();
+  applyPyramid();
+});
+document.querySelector('#reset-pyramid').addEventListener('click', () => {
+  clearPyramidPlacement();
+  setStatus('Clicca il centro di appoggio della piramide.');
 });
 [
   ui.cutShape,
@@ -286,6 +337,8 @@ canvas.addEventListener('pointerup', (event) => {
     else if (activeTool === 'hole') holeAt(event.clientX, event.clientY);
     else if (activeTool === 'box') boxAt(event.clientX, event.clientY);
     else if (activeTool === 'cylinder') cylinderAt(event.clientX, event.clientY);
+    else if (activeTool === 'cone') coneAt(event.clientX, event.clientY);
+    else if (activeTool === 'pyramid') pyramidAt(event.clientX, event.clientY);
     else if (activeTool === 'cut') cutAt(event.clientX, event.clientY);
     else if (activeTool === 'text') textAt(event.clientX, event.clientY);
     else if (activeTool === 'line') sketchAt(event.clientX, event.clientY);
@@ -326,6 +379,8 @@ window.addEventListener('keydown', (event) => {
     f: 'movehole',
     b: 'box',
     c: 'cylinder',
+    v: 'cone',
+    i: 'pyramid',
     t: 'cut',
     a: 'text',
     l: 'line',
@@ -351,5 +406,6 @@ window.addEventListener('keydown', (event) => {
 new ResizeObserver(resize).observe(viewport);
 createExample();
 updateInspector();
+applyLanguage(localStorage.getItem('forma3d-language') ?? 'it');
 
 requestRender();

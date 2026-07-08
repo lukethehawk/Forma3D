@@ -243,14 +243,17 @@ function applyBox() {
   );
 }
 
+function axisDirectionFromPlacement(placement, axisValue, operation = 'add') {
+  if (axisValue === 'x') return new THREE.Vector3(1, 0, 0);
+  if (axisValue === 'y') return new THREE.Vector3(0, 1, 0);
+  if (axisValue === 'z') return new THREE.Vector3(0, 0, 1);
+  const normal = placement?.normal?.clone().normalize() ?? new THREE.Vector3(0, 0, 1);
+  return operation === 'subtract' ? normal.negate() : normal;
+}
+
 function cylinderDirectionFromState() {
   if (!cylinderPlacement) return new THREE.Vector3(0, 0, 1);
-  const axis = ui.cylinderAxis.value;
-  if (axis === 'x') return new THREE.Vector3(1, 0, 0);
-  if (axis === 'y') return new THREE.Vector3(0, 1, 0);
-  if (axis === 'z') return new THREE.Vector3(0, 0, 1);
-  const normal = cylinderPlacement.normal.clone().normalize();
-  return ui.cylinderOperation.value === 'subtract' ? normal.negate() : normal;
+  return axisDirectionFromPlacement(cylinderPlacement, ui.cylinderAxis.value, ui.cylinderOperation.value);
 }
 
 function cylinderGeometryFromState() {
@@ -310,6 +313,139 @@ function applyCylinder() {
     geometry,
     ui.cylinderOperation.value,
     ui.cylinderOperation.value === 'subtract' ? 'Cilindro sottratto dal solido.' : 'Cilindro unito al solido.',
+  );
+}
+
+function coneDirectionFromState() {
+  if (!conePlacement) return new THREE.Vector3(0, 0, 1);
+  return axisDirectionFromPlacement(conePlacement, ui.coneAxis.value, ui.coneOperation.value);
+}
+
+function coneGeometryFromState() {
+  if (!conePlacement) return null;
+  const diameter = parseDecimal(ui.coneDiameter.value, 0);
+  const height = parseDecimal(ui.coneHeight.value, 0);
+  if (!(diameter > 0) || !(height > 0)) return null;
+  const base = conePlacement.basePoint.clone().add(inputVector(ui.coneOffsetInputs));
+  return createConeGeometryFromBase(base, diameter / 2, height, coneDirectionFromState(), 64);
+}
+
+function drawConePreview() {
+  if (!conePlacement || activeTool !== 'cone') return;
+  const geometry = coneGeometryFromState();
+  if (!geometry) {
+    ui.applyCone.disabled = true;
+    return;
+  }
+  conePreview = setPreviewMesh(
+    conePreview,
+    geometry,
+    operationColor(ui.coneOperation.value),
+    'cone-preview',
+  );
+  ui.applyCone.disabled = false;
+}
+
+function setConePoint(pick) {
+  conePlacement = {
+    basePoint: pick.point.clone(),
+    normal: pick.normal.clone(),
+  };
+  ui.coneInfo.textContent = `Centro base X ${pick.point.x.toFixed(2)}, Y ${pick.point.y.toFixed(2)}, Z ${pick.point.z.toFixed(2)} mm - snap ${pick.snapKind}.`;
+  ui.coneOffsetInputs.forEach((input) => {
+    input.value = '0';
+  });
+  drawConePreview();
+  setStatus('Cono impostato. Regola diametro, altezza, asse e operazione.');
+}
+
+function coneAt(clientX, clientY) {
+  const pick = pickWorkPoint(clientX, clientY);
+  if (!pick) {
+    setStatus('Clicca sul piano di lavoro o su un solido.');
+    return;
+  }
+  setConePoint(pick);
+}
+
+function applyCone() {
+  const geometry = coneGeometryFromState();
+  if (!geometry) {
+    setStatus('Imposta prima centro, diametro e altezza del cono.');
+    return;
+  }
+  applyPrimitiveGeometry(
+    geometry,
+    ui.coneOperation.value,
+    ui.coneOperation.value === 'subtract' ? 'Cono sottratto dal solido.' : 'Cono unito al solido.',
+  );
+}
+
+function pyramidDirectionFromState() {
+  if (!pyramidPlacement) return new THREE.Vector3(0, 0, 1);
+  return axisDirectionFromPlacement(pyramidPlacement, ui.pyramidAxis.value, ui.pyramidOperation.value);
+}
+
+function pyramidGeometryFromState() {
+  if (!pyramidPlacement) return null;
+  const size = new THREE.Vector2(
+    parseDecimal(ui.pyramidWidth.value, 0),
+    parseDecimal(ui.pyramidDepth.value, 0),
+  );
+  const height = parseDecimal(ui.pyramidHeight.value, 0);
+  if (!(size.x > 0) || !(size.y > 0) || !(height > 0)) return null;
+  const base = pyramidPlacement.basePoint.clone().add(inputVector(ui.pyramidOffsetInputs));
+  return createPyramidGeometryFromBase(base, size, height, pyramidDirectionFromState());
+}
+
+function drawPyramidPreview() {
+  if (!pyramidPlacement || activeTool !== 'pyramid') return;
+  const geometry = pyramidGeometryFromState();
+  if (!geometry) {
+    ui.applyPyramid.disabled = true;
+    return;
+  }
+  pyramidPreview = setPreviewMesh(
+    pyramidPreview,
+    geometry,
+    operationColor(ui.pyramidOperation.value),
+    'pyramid-preview',
+  );
+  ui.applyPyramid.disabled = false;
+}
+
+function setPyramidPoint(pick) {
+  pyramidPlacement = {
+    basePoint: pick.point.clone(),
+    normal: pick.normal.clone(),
+  };
+  ui.pyramidInfo.textContent = `Centro base X ${pick.point.x.toFixed(2)}, Y ${pick.point.y.toFixed(2)}, Z ${pick.point.z.toFixed(2)} mm - snap ${pick.snapKind}.`;
+  ui.pyramidOffsetInputs.forEach((input) => {
+    input.value = '0';
+  });
+  drawPyramidPreview();
+  setStatus('Piramide impostata. Regola base, altezza, asse e operazione.');
+}
+
+function pyramidAt(clientX, clientY) {
+  const pick = pickWorkPoint(clientX, clientY);
+  if (!pick) {
+    setStatus('Clicca sul piano di lavoro o su un solido.');
+    return;
+  }
+  setPyramidPoint(pick);
+}
+
+function applyPyramid() {
+  const geometry = pyramidGeometryFromState();
+  if (!geometry) {
+    setStatus('Imposta prima centro, base e altezza della piramide.');
+    return;
+  }
+  applyPrimitiveGeometry(
+    geometry,
+    ui.pyramidOperation.value,
+    ui.pyramidOperation.value === 'subtract' ? 'Piramide sottratta dal solido.' : 'Piramide unita al solido.',
   );
 }
 

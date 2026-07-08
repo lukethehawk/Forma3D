@@ -22,12 +22,24 @@
         <button id="remove-model" class="top-button danger">
           <span class="button-icon">X</span> Rimuovi modello
         </button>
-        <button id="repair-model" class="top-button">
-          <span class="button-icon">R</span> Ripara mesh
-        </button>
-        <button id="export-file" class="top-button primary">
-          <span class="button-icon">E</span> Esporta STL
-        </button>
+        <div class="top-menu">
+          <button id="options-menu-button" class="top-button" type="button" aria-haspopup="true" aria-expanded="false">
+            Opzioni <span class="menu-caret" aria-hidden="true">›</span>
+          </button>
+          <div id="options-menu" class="top-menu-panel" hidden>
+            <label for="language-select">Lingua</label>
+            <select id="language-select">
+              <option value="it">Italiano</option>
+              <option value="en">English</option>
+            </select>
+            <button id="repair-model" class="top-button" type="button">
+              <span class="button-icon">R</span> Ripara mesh
+            </button>
+            <button id="export-file" class="top-button primary" type="button">
+              <span class="button-icon">E</span> Esporta STL
+            </button>
+          </div>
+        </div>
         <input id="file-input" type="file" accept=".stl" hidden />
       </nav>
     </header>
@@ -42,33 +54,35 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9l7-4 7 4-7 4zM5 13l7 4 7-4v5l-7 4-7-4z"/><path d="M12 13V5"/></svg>
           <span>Spingi/Tira</span>
         </button>
-        <button class="tool" data-tool="hole" title="Foro (H)">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="7" rx="7" ry="4"/><path d="M5 7v9c0 2.2 3.1 4 7 4s7-1.8 7-4V7M9 7c0 1 1.3 1.8 3 1.8S15 8 15 7"/></svg>
-          <span>Foro</span>
-        </button>
-        <button class="tool" data-tool="movehole" title="Sposta foro (F)">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="8" cy="12" rx="4" ry="6"/><path d="M12 12h8M17 9l3 3-3 3"/></svg>
-          <span>Sposta foro</span>
-        </button>
-        <button class="tool" data-tool="box" title="Parallelepipedo (B)">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8l7-4 7 4v8l-7 4-7-4z"/><path d="M5 8l7 4 7-4M12 12v8"/></svg>
-          <span>Box</span>
-        </button>
-        <button class="tool" data-tool="cylinder" title="Cilindro (C)">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="6" ry="3"/><path d="M6 6v12c0 1.7 2.7 3 6 3s6-1.3 6-3V6"/></svg>
-          <span>Cilindro</span>
-        </button>
-        <button class="tool" data-tool="cut" title="Sottrai solido (T)">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l7-4 7 4v8l-7 4-7-4z"/><path d="M4 8l7 4 7-4M11 12v8"/><path d="M14 11h7M18 8l3 3-3 3"/></svg>
-          <span>Sottrai</span>
-        </button>
+        <div class="tool-menu">
+          <button class="tool tool-menu-trigger" type="button" title="Solidi">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8l7-4 7 4v8l-7 4-7-4z"/><path d="M5 8l7 4 7-4M12 12v8"/></svg>
+            <span>Solidi</span>
+            <i aria-hidden="true">›</i>
+          </button>
+          <div class="tool-submenu">
+            <button class="tool compact" data-tool="box" title="Parallelepipedo (B)">Box</button>
+            <button class="tool compact" data-tool="cylinder" title="Cilindro (C)">Cilindro</button>
+            <button class="tool compact" data-tool="cone" title="Cono (V)">Cono</button>
+            <button class="tool compact" data-tool="pyramid" title="Piramide (I)">Piramide</button>
+            <button class="tool compact" data-tool="text" title="Testo 3D (A)">Testo 3D</button>
+          </div>
+        </div>
+        <div class="tool-menu">
+          <button class="tool tool-menu-trigger" type="button" title="Operazioni booleane">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l7-4 7 4v8l-7 4-7-4z"/><path d="M14 11h7M18 8l3 3-3 3"/></svg>
+            <span>Booleane</span>
+            <i aria-hidden="true">›</i>
+          </button>
+          <div class="tool-submenu">
+            <button class="tool compact" data-tool="cut" title="Sottrai solido (T)">Sottrai</button>
+            <button class="tool compact" data-tool="hole" title="Foro (H)">Foro</button>
+            <button class="tool compact" data-tool="movehole" title="Sposta foro (F)">Sposta foro</button>
+          </div>
+        </div>
         <button class="tool" data-tool="line" title="Linea (L)">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18L9 8l5 5 6-7"/><circle cx="4" cy="18" r="2"/><circle cx="9" cy="8" r="2"/><circle cx="14" cy="13" r="2"/><circle cx="20" cy="6" r="2"/></svg>
           <span>Linea</span>
-        </button>
-        <button class="tool" data-tool="text" title="Testo 3D (A)">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20L10 4h4l6 16"/><path d="M7 14h10"/><path d="M9 20h6"/></svg>
-          <span>Testo</span>
         </button>
         <button class="tool" data-tool="measure" title="Misura (M)">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17L17 4l3 3L7 20z"/><path d="M9 15l-2-2M12 12l-2-2M15 9l-2-2"/></svg>
@@ -295,6 +309,111 @@
           </div>
           <button id="apply-cylinder" type="button" class="action-button" disabled>Applica cilindro</button>
           <button id="reset-cylinder" type="button" class="secondary-button">Ricomincia</button>
+        </form>
+
+        <form id="cone-form" class="tool-form primitive-form" hidden>
+          <div class="hole-readout">
+            <span>Centro base</span>
+            <strong id="cone-info">Clicca dove vuoi appoggiare il cono.</strong>
+            <small>Asse su faccia usa la normale della superficie cliccata.</small>
+          </div>
+          <label for="cone-operation">Operazione</label>
+          <select id="cone-operation">
+            <option value="add">Somma al solido</option>
+            <option value="subtract">Sottrai dal solido</option>
+          </select>
+          <label for="cone-axis">Asse</label>
+          <select id="cone-axis">
+            <option value="face">Asse della faccia</option>
+            <option value="z">Asse Z</option>
+            <option value="x">Asse X</option>
+            <option value="y">Asse Y</option>
+          </select>
+          <label for="cone-diameter">Diametro base</label>
+          <div class="field-with-unit">
+            <input id="cone-diameter" type="text" inputmode="decimal" min="0.1" step="0.1" value="16" />
+            <span>mm</span>
+          </div>
+          <label for="cone-height">Altezza</label>
+          <div class="field-with-unit">
+            <input id="cone-height" type="text" inputmode="decimal" min="0.1" step="0.1" value="24" />
+            <span>mm</span>
+          </div>
+          <div class="offset-grid">
+            <label for="cone-offset-x" class="axis-x">Spostamento X</label>
+            <div class="field-with-unit">
+              <input id="cone-offset-x" type="text" inputmode="decimal" step="0.1" value="0" />
+              <span>mm</span>
+            </div>
+            <label for="cone-offset-y" class="axis-y">Spostamento Y</label>
+            <div class="field-with-unit">
+              <input id="cone-offset-y" type="text" inputmode="decimal" step="0.1" value="0" />
+              <span>mm</span>
+            </div>
+            <label for="cone-offset-z" class="axis-z">Spostamento Z</label>
+            <div class="field-with-unit">
+              <input id="cone-offset-z" type="text" inputmode="decimal" step="0.1" value="0" />
+              <span>mm</span>
+            </div>
+          </div>
+          <button id="apply-cone" type="button" class="action-button" disabled>Applica cono</button>
+          <button id="reset-cone" type="button" class="secondary-button">Ricomincia</button>
+        </form>
+
+        <form id="pyramid-form" class="tool-form primitive-form" hidden>
+          <div class="hole-readout">
+            <span>Centro base</span>
+            <strong id="pyramid-info">Clicca dove vuoi appoggiare la piramide.</strong>
+            <small>La base rettangolare resta centrata sul punto scelto.</small>
+          </div>
+          <label for="pyramid-operation">Operazione</label>
+          <select id="pyramid-operation">
+            <option value="add">Somma al solido</option>
+            <option value="subtract">Sottrai dal solido</option>
+          </select>
+          <label for="pyramid-axis">Asse</label>
+          <select id="pyramid-axis">
+            <option value="face">Asse della faccia</option>
+            <option value="z">Asse Z</option>
+            <option value="x">Asse X</option>
+            <option value="y">Asse Y</option>
+          </select>
+          <div class="offset-grid">
+            <label for="pyramid-width" class="axis-x">Base X</label>
+            <div class="field-with-unit">
+              <input id="pyramid-width" type="text" inputmode="decimal" min="0.1" step="0.1" value="24" />
+              <span>mm</span>
+            </div>
+            <label for="pyramid-depth" class="axis-y">Base Y</label>
+            <div class="field-with-unit">
+              <input id="pyramid-depth" type="text" inputmode="decimal" min="0.1" step="0.1" value="24" />
+              <span>mm</span>
+            </div>
+            <label for="pyramid-height" class="axis-z">Altezza</label>
+            <div class="field-with-unit">
+              <input id="pyramid-height" type="text" inputmode="decimal" min="0.1" step="0.1" value="20" />
+              <span>mm</span>
+            </div>
+          </div>
+          <div class="offset-grid">
+            <label for="pyramid-offset-x" class="axis-x">Spostamento X</label>
+            <div class="field-with-unit">
+              <input id="pyramid-offset-x" type="text" inputmode="decimal" step="0.1" value="0" />
+              <span>mm</span>
+            </div>
+            <label for="pyramid-offset-y" class="axis-y">Spostamento Y</label>
+            <div class="field-with-unit">
+              <input id="pyramid-offset-y" type="text" inputmode="decimal" step="0.1" value="0" />
+              <span>mm</span>
+            </div>
+            <label for="pyramid-offset-z" class="axis-z">Spostamento Z</label>
+            <div class="field-with-unit">
+              <input id="pyramid-offset-z" type="text" inputmode="decimal" step="0.1" value="0" />
+              <span>mm</span>
+            </div>
+          </div>
+          <button id="apply-pyramid" type="button" class="action-button" disabled>Applica piramide</button>
+          <button id="reset-pyramid" type="button" class="secondary-button">Ricomincia</button>
         </form>
 
         <form id="cut-form" class="tool-form primitive-form" hidden>

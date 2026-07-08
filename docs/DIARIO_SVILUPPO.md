@@ -55,8 +55,8 @@ Su PowerShell puo' essere necessario usare `npm.cmd` se l'esecuzione di
 
 ## Struttura del repository
 
-- `index.html`: markup dell'interfaccia. Contiene topbar, toolbar verticale,
-  viewport, inspector laterale e statusbar.
+- `index.html`: markup dell'interfaccia. Contiene topbar, toolbar verticale con
+  menu espandibili, viewport, inspector laterale e statusbar.
 - `src/style.css`: stile dell'app. Mantiene una UI compatta e tecnica, ispirata
   agli strumenti desktop di modellazione.
 - `src/main.parts/*.js`: sorgente reale del controller principale, diviso in
@@ -66,7 +66,8 @@ Su PowerShell puo' essere necessario usare `npm.cmd` se l'esecuzione di
 - `scripts/assemble-main.cjs`: concatena le parti `main.partXX.js` in
   `src/main.js`.
 - `src/geometry.js`: funzioni geometriche sulle mesh triangolari.
-- `src/primitives.js`: creazione di box, cilindri, sagome estruse e testo 3D.
+- `src/primitives.js`: creazione di box, cilindri, coni, piramidi, sagome
+  estruse e testo 3D.
 - `src/hole-detection.js`: riconoscimento euristico dei fori cilindrici.
 - `src/snapping.js`: raccolta vertici e snap a griglia, punti e assi.
 - `src/measurement.js`: calcolo distanza e componenti assiali.
@@ -90,6 +91,32 @@ calculateMeasurement(start, end
 
 La correzione reale e' stata fatta in `src/main.parts/main.part02.js`, non nel
 file generato.
+
+## Navigazione UI
+
+La toolbar verticale non espone piu' tutte le azioni in una lista piatta:
+
+- strumenti diretti: `Seleziona`, `Spingi/Tira`, `Linea`, `Misura`,
+  `Trasforma`, navigazione vista;
+- menu `Solidi`: `Box`, `Cilindro`, `Cono`, `Piramide`, `Testo 3D`;
+- menu `Booleane`: `Sottrai`, `Foro`, `Sposta foro`.
+
+I sottomenu sono elementi HTML leggeri che si aprono verso destra con hover o
+focus. I pulsanti reali mantengono `data-tool`, quindi il controller continua a
+passare da `setTool(tool)` e le scorciatoie restano indipendenti dal layout.
+
+La topbar mantiene `Apri STL` e `Rimuovi modello` come azioni primarie. Il menu
+`Opzioni`, ultimo tasto a destra, contiene:
+
+- selezione lingua `Italiano` / `English`;
+- `Ripara mesh`;
+- `Esporta STL`.
+
+La lingua viene salvata in `localStorage` (`forma3d-language`). La funzione
+`applyLanguage(language)` aggiorna i testi statici principali tramite una
+tabella estendibile (`staticTranslations`) e i nomi tool/topbar tramite
+`languageText`. I messaggi dinamici profondi restano in gran parte in italiano:
+la struttura e' predisposta per portarli progressivamente nella stessa tabella.
 
 ## Pubblicazione web su GitHub Pages
 
@@ -361,6 +388,10 @@ Le primitive sono create in `src/primitives.js`.
   sviluppato in altezza.
 - `createCylinderGeometryFromBase(base, radius, height, direction)`: cilindro
   orientato su direzione arbitraria.
+- `createConeGeometryFromBase(base, radius, height, direction)`: cono con base
+  centrata sul punto cliccato e apice lungo la direzione scelta.
+- `createPyramidGeometryFromBase(base, size, height, direction)`: piramide a base
+  rettangolare centrata sul punto cliccato, orientata lungo asse faccia/X/Y/Z.
 - `createExtrudedPolygonGeometry(points, height)`: estrude una sagoma 2D chiusa.
 - `createTextGeometryFromBase(base, text, font, options)`: genera testo 3D
   estruso usando `TextGeometry`, normalizza l'angolo basso sinistro sul punto
@@ -374,6 +405,17 @@ Le primitive sono create in `src/primitives.js`.
 - altrimenti chiama `booleanGeometry()`.
 
 `booleanGeometry()` usa `three-bvh-csg` con `ADDITION` o `SUBTRACTION`.
+
+Le primitive solide nel menu `Solidi` condividono la stessa logica UI:
+
+- click di appoggio con `pickWorkPoint()`;
+- anteprima tramite `setPreviewMesh()`;
+- operazione `add` o `subtract`;
+- offset X/Y/Z;
+- asse `face`, `x`, `y`, `z` dove applicabile.
+
+Scorciatoie correnti: `B` box, `C` cilindro, `V` cono, `I` piramide, `A` testo
+3D.
 
 Per il testo in rilievo sul modello si usa invece `combineGeometries()`:
 concatena i vertici del modello e della scritta senza booleana. E' molto piu'

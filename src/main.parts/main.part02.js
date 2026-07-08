@@ -34,6 +34,36 @@ function clearCylinderPlacement() {
   ui.applyCylinder.disabled = true;
 }
 
+function clearConePlacement() {
+  conePlacement = null;
+  if (conePreview) {
+    scene.remove(conePreview);
+    disposeObject(conePreview);
+    conePreview = null;
+    requestRender();
+  }
+  ui.coneInfo.textContent = 'Clicca dove vuoi appoggiare il cono.';
+  ui.coneOffsetInputs.forEach((input) => {
+    input.value = '0';
+  });
+  ui.applyCone.disabled = true;
+}
+
+function clearPyramidPlacement() {
+  pyramidPlacement = null;
+  if (pyramidPreview) {
+    scene.remove(pyramidPreview);
+    disposeObject(pyramidPreview);
+    pyramidPreview = null;
+    requestRender();
+  }
+  ui.pyramidInfo.textContent = 'Clicca dove vuoi appoggiare la piramide.';
+  ui.pyramidOffsetInputs.forEach((input) => {
+    input.value = '0';
+  });
+  ui.applyPyramid.disabled = true;
+}
+
 function clearCutPlacement() {
   cutPlacement = null;
   if (cutPreview) {
@@ -140,6 +170,8 @@ function setModelGeometry(geometry, recordHistory = true, options = {}) {
   clearHoleMove();
   clearBoxPlacement();
   clearCylinderPlacement();
+  clearConePlacement();
+  clearPyramidPlacement();
   clearCutPlacement();
   clearTextPlacement();
   clearTransformPreview();
@@ -201,6 +233,8 @@ function clearCurrentModel(message = 'Modello rimosso. Apri un STL o crea una nu
   clearHoleMove();
   clearBoxPlacement();
   clearCylinderPlacement();
+  clearConePlacement();
+  clearPyramidPlacement();
   clearCutPlacement();
   clearTextPlacement();
   clearTransformPreview();
@@ -429,6 +463,16 @@ function clearActiveDeleteTarget() {
     setStatus('Cilindro in anteprima cancellato.');
     return true;
   }
+  if (activeTool === 'cone' && conePlacement) {
+    clearConePlacement();
+    setStatus('Cono in anteprima cancellato.');
+    return true;
+  }
+  if (activeTool === 'pyramid' && pyramidPlacement) {
+    clearPyramidPlacement();
+    setStatus('Piramide in anteprima cancellata.');
+    return true;
+  }
   if (activeTool === 'cut' && cutPlacement) {
     clearCutPlacement();
     setStatus('Figura di taglio cancellata.');
@@ -513,6 +557,16 @@ function updateInspector() {
       description: 'Clicca il centro di appoggio, scegli asse, diametro, altezza e operazione booleana.',
       hint: 'Cilindro: clicca dove appoggiare il centro. Puoi sommare o sottrarre.',
     },
+    cone: {
+      title: 'Cono',
+      description: 'Clicca il centro della base, scegli asse, diametro, altezza e operazione booleana.',
+      hint: 'Cono: clicca il centro base, poi regola diametro, altezza e asse.',
+    },
+    pyramid: {
+      title: 'Piramide',
+      description: 'Clicca il centro della base, regola base, altezza, asse e operazione booleana.',
+      hint: 'Piramide: clicca il centro base, poi regola base X, base Y e altezza.',
+    },
     cut: {
       title: 'Sottrai solido',
       description: 'Crea un box o un cilindro di taglio e sottrailo dal file STL caricato.',
@@ -558,15 +612,17 @@ function updateInspector() {
   ui.moveHoleForm.hidden = activeTool !== 'movehole';
   ui.boxForm.hidden = activeTool !== 'box';
   ui.cylinderForm.hidden = activeTool !== 'cylinder';
+  ui.coneForm.hidden = activeTool !== 'cone';
+  ui.pyramidForm.hidden = activeTool !== 'pyramid';
   ui.cutForm.hidden = activeTool !== 'cut';
   ui.textForm.hidden = activeTool !== 'text';
   ui.sketchForm.hidden = activeTool !== 'line';
   ui.measurePanel.hidden = activeTool !== 'measure';
   ui.transformForm.hidden = activeTool !== 'transform';
-  document.querySelector('#selection-info').hidden = ['hole', 'measure', 'movehole', 'box', 'cylinder', 'cut', 'text', 'line', 'transform'].includes(activeTool);
+  document.querySelector('#selection-info').hidden = ['hole', 'measure', 'movehole', 'box', 'cylinder', 'cone', 'pyramid', 'cut', 'text', 'line', 'transform'].includes(activeTool);
   ui.inspector.classList.toggle(
     'open',
-    ['pushpull', 'hole', 'movehole', 'box', 'cylinder', 'cut', 'text', 'line', 'measure', 'transform'].includes(activeTool),
+    ['pushpull', 'hole', 'movehole', 'box', 'cylinder', 'cone', 'pyramid', 'cut', 'text', 'line', 'measure', 'transform'].includes(activeTool),
   );
   updateMeasureBoxMode();
 }
@@ -580,6 +636,8 @@ function setTool(tool) {
   if (activeTool === 'movehole' && tool !== 'movehole') clearHoleMove();
   if (activeTool === 'box' && tool !== 'box') clearBoxPlacement();
   if (activeTool === 'cylinder' && tool !== 'cylinder') clearCylinderPlacement();
+  if (activeTool === 'cone' && tool !== 'cone') clearConePlacement();
+  if (activeTool === 'pyramid' && tool !== 'pyramid') clearPyramidPlacement();
   if (activeTool === 'cut' && tool !== 'cut') clearCutPlacement();
   if (activeTool === 'text' && tool !== 'text') clearTextPlacement();
   if (activeTool === 'line' && tool !== 'line') clearSketchCurrentLine();
@@ -603,6 +661,14 @@ function setTool(tool) {
   if (tool === 'cylinder') {
     clearSelection();
     clearCylinderPlacement();
+  }
+  if (tool === 'cone') {
+    clearSelection();
+    clearConePlacement();
+  }
+  if (tool === 'pyramid') {
+    clearSelection();
+    clearPyramidPlacement();
   }
   if (tool === 'cut') {
     clearSelection();
@@ -631,7 +697,7 @@ function setTool(tool) {
       ? 'grab'
         : tool === 'pan'
           ? 'move'
-          : ['hole', 'measure', 'movehole', 'box', 'cylinder', 'cut', 'text', 'line'].includes(tool)
+          : ['hole', 'measure', 'movehole', 'box', 'cylinder', 'cone', 'pyramid', 'cut', 'text', 'line'].includes(tool)
             ? 'crosshair'
             : 'default';
   updateInspector();
@@ -642,6 +708,8 @@ function setTool(tool) {
     movehole: 'Sposta foro: clicca la parete interna del foro.',
     box: 'Parallelepipedo: clicca il punto di appoggio, poi regola misure e somma/sottrai.',
     cylinder: 'Cilindro: clicca il centro di appoggio, poi regola diametro, altezza e asse.',
+    cone: 'Cono: clicca il centro base, poi regola diametro, altezza e asse.',
+    pyramid: 'Piramide: clicca il centro base, poi regola base, altezza e asse.',
     cut: 'Sottrai: scegli box o cilindro, clicca il punto e applica il taglio.',
     text: 'Testo: clicca il punto basso sinistro, poi scrivi e regola profondita e font.',
     line: 'Linea: crea guide indipendenti. Gli altri strumenti si agganciano a estremi, midpoint e segmenti.',
@@ -840,7 +908,7 @@ function drawSnapIndicator(pick) {
 }
 
 function updateSnapIndicator(clientX, clientY) {
-  if (!['hole', 'measure', 'movehole', 'box', 'cylinder', 'cut', 'text', 'line'].includes(activeTool)) {
+  if (!['hole', 'measure', 'movehole', 'box', 'cylinder', 'cone', 'pyramid', 'cut', 'text', 'line'].includes(activeTool)) {
     clearSnapIndicator();
     return;
   }
