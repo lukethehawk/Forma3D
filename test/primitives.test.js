@@ -80,19 +80,21 @@ test('createTextGeometryFromBase extrudes text along the requested direction', (
   assert.equal(Math.round(geometry.boundingBox.min.z), -1);
 });
 
-test('createTextGeometryFromBase uses the direction vector for inward text engraving', () => {
+test('createTextGeometryFromBase supports readable inward engraving by offsetting the base', () => {
   const geometry = createTextGeometryFromBase(
-    new THREE.Vector3(4, 5, 2),
+    new THREE.Vector3(4, 5, -1),
     'A',
     testFont,
     {
       size: 10,
       depth: 3,
-      direction: new THREE.Vector3(0, 0, -1),
+      direction: new THREE.Vector3(0, 0, 1),
     },
   );
   geometry.computeBoundingBox();
   assert.equal(Math.round(geometry.boundingBox.max.z), 2);
   assert.equal(Math.round(geometry.boundingBox.min.z), -1);
+  assert.equal(Math.round(geometry.boundingBox.min.x), 4);
+  assert.equal(Math.round(geometry.boundingBox.min.y), 5);
 });
 

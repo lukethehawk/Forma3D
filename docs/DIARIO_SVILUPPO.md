@@ -379,9 +379,12 @@ vecchie quando l'utente cambia valori rapidamente o resetta lo strumento.
 Orientamento:
 
 - in modalita rilievo, il testo estrude lungo la normale della faccia cliccata;
-- in modalita sottrai/incidi, il cutter viene orientato direttamente nella
-  normale invertita, come nella prima logica funzionante. Non usa scala negativa
-  o inversione separata della profondita, per evitare geometrie CSG instabili.
+- in modalita sottrai/incidi, il testo resta orientato sulla normale esterna
+  della faccia, quindi rimane leggibile e non specchiato. Il punto base viene
+  spostato verso l'interno del solido della profondita richiesta e la geometria
+  del cutter aggiunge un piccolo overlap verso l'esterno (`0,25 mm`) per evitare
+  facce complanari instabili durante la CSG. Non usa scala negativa o inversione
+  separata della profondita, per evitare geometrie CSG instabili.
 
 Prestazioni:
 

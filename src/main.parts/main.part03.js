@@ -400,24 +400,31 @@ async function selectedTextFont() {
 
 async function textGeometryFromState() {
   if (!textPlacement) return null;
+  const operation = ui.textOperation.value;
+  const normal = textSurfaceNormalFromState();
+  const requestedDepth = parseDecimal(ui.textDepth.value, 3);
+  const depth = requestedDepth + (operation === 'subtract' ? TEXT_ENGRAVE_SURFACE_OVERLAP : 0);
   const base = textPlacement.basePoint.clone().add(inputVector(ui.textOffsetInputs));
+  if (operation === 'subtract') {
+    base.addScaledVector(normal, -requestedDepth);
+  }
   return createTextGeometryFromBase(base, ui.textContent.value, await selectedTextFont(), {
     size: parseDecimal(ui.textSize.value, 12),
-    depth: parseDecimal(ui.textDepth.value, 3),
+    depth,
     widthScale: parseDecimal(ui.textWidth.value, 1),
     bevelSize: parseDecimal(ui.textBevel.value, 0),
     rotationZ: parseDecimal(ui.textRotation.value, 0),
     italic: ui.textItalic.checked,
-    direction: textDirectionFromState(),
+    direction: normal,
   });
 }
 
-function textDirectionFromState() {
+function textSurfaceNormalFromState() {
   if (!textPlacement?.normal) return new THREE.Vector3(0, 0, 1);
   const normal = textPlacement.normal.clone();
   if (normal.lengthSq() < 1e-8) normal.set(0, 0, 1);
   normal.normalize();
-  return ui.textOperation.value === 'subtract' ? normal.negate() : normal;
+  return normal;
 }
 
 function textBooleanIsSafe(geometry) {

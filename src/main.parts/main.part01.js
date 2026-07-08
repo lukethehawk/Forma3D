@@ -177,6 +177,7 @@ let textPreviewRequest = 0;
 let textApplyInProgress = false;
 const MAX_TEXT_BOOLEAN_TRIANGLES = 12000;
 const MAX_TEXT_BOOLEAN_TOTAL_TRIANGLES = 70000;
+const TEXT_ENGRAVE_SURFACE_OVERLAP = 0.25;
 const MAX_EDGE_TRIANGLES = 50000;
 const MODEL_EDGE_ANGLE = 80;
 let appBusy = false;
