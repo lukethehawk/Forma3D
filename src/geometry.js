@@ -400,13 +400,6 @@ function edgeKey(a, b, tolerance) {
   return `${keys[0]}|${keys[1]}`;
 }
 
-function shouldShowBoundaryEdge(a, b, boundaryDegrees, tolerance) {
-  return (
-    (boundaryDegrees.get(pointKey(a, tolerance)) ?? 0) >= 2 &&
-    (boundaryDegrees.get(pointKey(b, tolerance)) ?? 0) >= 2
-  );
-}
-
 function collectDisplayEdges(geometry, angleDegrees = 80, tolerance = DEFAULT_TOLERANCE) {
   const position = geometry.getAttribute('position');
   if (!position) return [];
@@ -430,23 +423,12 @@ function collectDisplayEdges(geometry, angleDegrees = 80, tolerance = DEFAULT_TO
   }
 
   const result = [];
-  const boundaryDegrees = new Map();
-  for (const edges of edgeMap.values()) {
-    if (edges.length !== 1) continue;
-    const [edge] = edges;
-    const aKey = pointKey(edge.a, tolerance);
-    const bKey = pointKey(edge.b, tolerance);
-    boundaryDegrees.set(aKey, (boundaryDegrees.get(aKey) ?? 0) + 1);
-    boundaryDegrees.set(bKey, (boundaryDegrees.get(bKey) ?? 0) + 1);
-  }
-
   for (const edges of edgeMap.values()) {
     const [edge] = edges;
-    const isBoundary = edges.length === 1;
     const isCrease = edges.some((current, index) =>
       edges.slice(index + 1).some((other) => current.normal.dot(other.normal) < threshold),
     );
-    if ((isBoundary && shouldShowBoundaryEdge(edge.a, edge.b, boundaryDegrees, tolerance)) || isCrease) {
+    if (isCrease) {
       result.push({
         a: edge.a.clone(),
         b: edge.b.clone(),
@@ -456,38 +438,57 @@ function collectDisplayEdges(geometry, angleDegrees = 80, tolerance = DEFAULT_TO
   return result;
 }
 
-function collectCoplanarRegionCenters(geometry, tolerance = DEFAULT_TOLERANCE) {
+function planeKeyFromTriangle(geometry, triangle, tolerance) {
+  const normal = triangleNormal(geometry, triangle);
+  if (normal.lengthSq() < 1e-8) return null;
+  const point = vertexAt(geometry, triangle, 0);
+  const distance = normal.dot(point);
+  const planeTolerance = tolerance * 50;
+  return [
+    Math.round(normal.x / 0.001),
+    Math.round(normal.y / 0.001),
+    Math.round(normal.z / 0.001),
+    Math.round(distance / planeTolerance),
+  ].join(':');
+}
+
+function collectCoplanarPlaneCenters(geometry, tolerance = DEFAULT_TOLERANCE) {
   const position = geometry.getAttribute('position');
   if (!position) return [];
 
   const triangleTotal = triangleCount(geometry);
-  const visited = new Set();
-  const centers = [];
-  const centerKeys = new Set();
   const point = new THREE.Vector3();
+  const planes = new Map();
 
   for (let triangle = 0; triangle < triangleTotal; triangle += 1) {
-    if (visited.has(triangle)) continue;
-    const region = findCoplanarRegion(geometry, triangle, 0.999, tolerance * 10);
-    for (const item of region.triangles) visited.add(item);
-    if (region.triangles.length < 2) continue;
-
-    const box = new THREE.Box3();
-    for (const regionTriangle of region.triangles) {
-      for (let corner = 0; corner < 3; corner += 1) {
-        point.copy(vertexAt(geometry, regionTriangle, corner));
-        box.expandByPoint(point);
-      }
+    const key = planeKeyFromTriangle(geometry, triangle, tolerance);
+    if (!key) continue;
+    if (!planes.has(key)) {
+      planes.set(key, {
+        box: new THREE.Box3(),
+        triangles: 0,
+      });
     }
-    if (box.isEmpty()) continue;
-
-    const center = box.getCenter(new THREE.Vector3());
-    const centerKey = pointKey(center, tolerance * 10);
-    if (centerKeys.has(centerKey)) continue;
-    centerKeys.add(centerKey);
-    centers.push(center);
+    const plane = planes.get(key);
+    plane.triangles += 1;
+    for (let corner = 0; corner < 3; corner += 1) {
+      point.copy(vertexAt(geometry, triangle, corner));
+      plane.box.expandByPoint(point);
+    }
   }
 
+  const centers = [];
+  const centerKeys = new Set();
+  for (const plane of planes.values()) {
+    if (plane.triangles < 2 || plane.box.isEmpty()) continue;
+    const size = plane.box.getSize(new THREE.Vector3());
+    if (size.lengthSq() < tolerance * tolerance) continue;
+    const center = plane.box.getCenter(new THREE.Vector3());
+    const key = pointKey(center, tolerance * 50);
+    if (centerKeys.has(key)) continue;
+    centerKeys.add(key);
+    centers.push(center);
+  }
   return centers;
 }
 
@@ -520,7 +521,7 @@ export function collectDisplaySnapPoints(geometry, angleDegrees = 80, tolerance 
     addTarget(edge.b, 'vertice');
     addTarget(edge.a.clone().add(edge.b).multiplyScalar(0.5), 'punto medio');
   }
-  for (const center of collectCoplanarRegionCenters(geometry, tolerance)) {
+  for (const center of collectCoplanarPlaneCenters(geometry, tolerance)) {
     addTarget(center, 'centro faccia');
   }
 

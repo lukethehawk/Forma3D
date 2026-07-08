@@ -83,6 +83,21 @@ test('createDisplayEdgesGeometry keeps the visible box outline', () => {
   assert.equal(edges.getAttribute('position').count, 24);
 });
 
+test('createDisplayEdgesGeometry hides coplanar triangulation boundaries', () => {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute([
+    0, 0, 0,
+    10, 0, 0,
+    10, 10, 0,
+    0, 0, 0,
+    10, 10, 0,
+    0, 10, 0,
+  ], 3));
+  const edges = createDisplayEdgesGeometry(geometry, 80);
+  assert.ok(edges);
+  assert.equal(edges.getAttribute('position').count, 0);
+});
+
 test('collectDisplaySnapPoints exposes visible edge vertices, midpoints and face centers', () => {
   const geometry = new THREE.BoxGeometry(10, 8, 6).toNonIndexed();
   const targets = collectDisplaySnapPoints(geometry, 80);

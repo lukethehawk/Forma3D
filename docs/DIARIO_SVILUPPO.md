@@ -549,12 +549,13 @@ strutturali del modello; poi prova il raycast sul modello; se non colpisce e
 - snap a target raccolti dalla geometria corrente e dalle guide Linea.
 
 `collectDisplaySnapPoints()` raccoglie endpoint, punti medi e centri faccia
-dalle geometrie di bordo filtrate. `createDisplayEdgesGeometry()` mostra crease
-reali e boundary chiusi, ma nasconde boundary aperti o spezzati lasciati dalle
-booleane: la mesh STL resta triangolata, ma la facciata viene presentata liscia
-e gli snap non si agganciano a quei residui. Quando il mouse passa sopra un
-target agganciabile la scena mostra un marker: blu per vertici, arancione per
-punti medi, verde per centri faccia, viola per punti lungo una guida.
+dalle geometrie di bordo filtrate. `createDisplayEdgesGeometry()` mostra solo
+crease reali, cioe' spigoli condivisi da facce con normali diverse. Non mostra
+piu' boundary aperti o spezzati lasciati dalle booleane: la mesh STL resta
+triangolata, ma la facciata viene presentata liscia e gli snap non si agganciano
+a quei residui. Quando il mouse passa sopra un target agganciabile la scena
+mostra un marker: blu per vertici, arancione per punti medi, verde per centri
+faccia, viola per punti lungo una guida.
 Lo strumento Linea prova anche una prima inferenza parallela ai segmenti gia'
 disegnati nella stessa sagoma.
 
