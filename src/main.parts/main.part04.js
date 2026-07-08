@@ -359,7 +359,13 @@ function applySketch() {
       setStatus('Non riesco a creare facce da queste linee.');
       return;
     }
-    appendGeometryToModel(geometry, `${sketchFaces.length} facce applicate al modello.`);
+    const appliedCount = sketchFaces.length;
+    const applied = appendGeometryToModel(geometry, `${appliedCount} facce applicate al modello.`);
+    if (applied) {
+      sketchFaces = [];
+      updateSketchApplyState();
+      drawSketchPreview();
+    }
   } catch (error) {
     setStatus(error instanceof Error ? error.message : 'Non riesco ad applicare queste facce.');
   }
@@ -583,7 +589,7 @@ function applyMoveHole() {
     geometry.computeVertexNormals();
 
     const offset = holeMove.targetCenter.clone().sub(hole.center);
-    setModelGeometry(geometry, false);
+    setModelGeometry(geometry, false, { preserveSketch: true });
     updateHistoryButtons();
     setStatus(
       `Foro spostato: X ${formatMillimeters(offset.x, true)}, Y ${formatMillimeters(offset.y, true)}, Z ${formatMillimeters(offset.z, true)}.`,
@@ -591,7 +597,7 @@ function applyMoveHole() {
   } catch (error) {
     console.error(`Errore spostamento foro: ${error?.stack ?? error}`);
     const previous = undoStack.pop();
-    if (previous) setModelGeometry(previous, false);
+    if (previous) setModelGeometry(previous, false, { preserveSketch: true });
     updateHistoryButtons();
     setStatus('Non riesco a spostare il foro su questa mesh.');
   }
@@ -608,7 +614,7 @@ function applyPushPull(distance) {
   }
   snapshot();
   const geometry = pushPullGeometry(model.geometry, selected.region, distance);
-  setModelGeometry(geometry, false);
+  setModelGeometry(geometry, false, { preserveSketch: true });
   updateHistoryButtons();
   setStatus(`Spingi/Tira applicato: ${distance.toFixed(2)} mm.`);
 }

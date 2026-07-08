@@ -445,13 +445,17 @@ Lo strumento Linea permette di costruire una piccola rete di spigoli e facce:
 - scelta del piano di disegno `Auto 3D`, `XY`, `XZ` o `YZ`;
 - toggle per disattivare aggancio assi/parallele quando serve una linea obliqua
   libera;
-- gli spigoli restano in bozza anche se non chiudono subito una forma;
+- gli spigoli restano in bozza anche se non chiudono subito una forma, quindi
+  una linea singola puo' essere usata come guida di misura o costruzione;
 - `Nuova linea` azzera solo la linea corrente, mantenendo gli spigoli gia'
   disegnati;
+- cambiare piano (`Auto 3D`, `XY`, `XZ`, `YZ`) o toggle agganci non cancella
+  piu' le linee gia' tracciate;
 - quando gli spigoli chiudono un contorno triangolare o una linea ritorna al
   punto iniziale, viene creata una faccia verde in anteprima;
 - `Applica facce` scrive le facce in bozza nella mesh STL tramite
-  `appendGeometryToModel()`.
+  `appendGeometryToModel()`: dopo l'applicazione le facce verdi vengono tolte
+  dalla bozza, mentre gli spigoli guida restano visibili.
 
 In `Auto 3D` il picker usa prima uno snap in spazio-schermo: se il cursore e'
 vicino a un vertice o a un punto medio visibile, viene preso quel punto 3D reale
@@ -478,6 +482,13 @@ premere Invio. La direzione resta quella suggerita dal mouse o dall'asse
 agganciato, la lunghezza viene forzata. Le facce create sono superfici
 triangolate piatte, non solidi con spessore: eventuale solidificazione o offset
 resta una funzione futura.
+
+Gli snap del modello non usano piu' tutti i vertici triangolati dello STL come
+bersagli principali. `setModelGeometry()` ricalcola `snapPoints` con
+`collectDisplaySnapPoints()`, cioe' dai soli spigoli visibili/strutturali usati
+anche per il wireframe del modello. Questo riduce gli agganci involontari alle
+diagonali interne create da booleane, fori o mesh STL riparate. Le guide Linea,
+invece, rimangono snap target espliciti tramite `sketchSnapTargets()`.
 
 ## Misure
 

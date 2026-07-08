@@ -140,13 +140,13 @@ function applyPrimitiveGeometry(geometry, operation, successMessage) {
   snapshot();
   try {
     const resultGeometry = booleanGeometry(model.geometry, geometry, operation);
-    setModelGeometry(resultGeometry, false);
+    setModelGeometry(resultGeometry, false, { preserveSketch: true });
     updateHistoryButtons();
     setStatus(successMessage);
   } catch (error) {
     console.error(`Errore booleana: ${error?.stack ?? error}`);
     const previous = undoStack.pop();
-    if (previous) setModelGeometry(previous, false);
+    if (previous) setModelGeometry(previous, false, { preserveSketch: true });
     updateHistoryButtons();
     setStatus('Operazione booleana non riuscita: prova con un solido chiuso o una posizione leggermente diversa.');
   } finally {
@@ -159,7 +159,7 @@ function appendGeometryToModel(geometry, successMessage) {
     setModelGeometry(geometry, false);
     fitView();
     setStatus(successMessage);
-    return;
+    return true;
   }
 
   setStatus('Applicazione testo in corso...');
@@ -167,15 +167,17 @@ function appendGeometryToModel(geometry, successMessage) {
   try {
     const resultGeometry = combineGeometries([model.geometry, geometry]);
     if (!resultGeometry) throw new Error('Nessuna geometria da combinare.');
-    setModelGeometry(resultGeometry, false);
+    setModelGeometry(resultGeometry, false, { preserveSketch: true });
     updateHistoryButtons();
     setStatus(successMessage);
+    return true;
   } catch (error) {
     console.error(`Errore unione testo: ${error?.stack ?? error}`);
     const previous = undoStack.pop();
-    if (previous) previous.dispose();
+    if (previous) setModelGeometry(previous, false, { preserveSketch: true });
     updateHistoryButtons();
     setStatus('Non riesco ad applicare il testo: prova a ridurre profondita o lunghezza.');
+    return false;
   } finally {
     geometry.dispose();
   }

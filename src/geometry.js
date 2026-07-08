@@ -409,16 +409,16 @@ function isOnOuterBoundary(a, b, box, tolerance) {
 }
 
 function shouldShowBoundaryEdge(a, b, box, tolerance) {
-  const longEdge = a.distanceTo(b) > 18;
+  const longEdge = a.distanceTo(b) > 6;
   if (longEdge && !isOnOuterBoundary(a, b, box, tolerance)) {
     return false;
   }
   return true;
 }
 
-export function createDisplayEdgesGeometry(geometry, angleDegrees = 80, tolerance = DEFAULT_TOLERANCE) {
+function collectDisplayEdges(geometry, angleDegrees = 80, tolerance = DEFAULT_TOLERANCE) {
   const position = geometry.getAttribute('position');
-  if (!position) return null;
+  if (!position) return [];
 
   const triangleTotal = triangleCount(geometry);
   const box = new THREE.Box3().setFromBufferAttribute(position);
@@ -439,7 +439,7 @@ export function createDisplayEdgesGeometry(geometry, angleDegrees = 80, toleranc
     }
   }
 
-  const positions = [];
+  const result = [];
   for (const edges of edgeMap.values()) {
     const [edge] = edges;
     const isBoundary = edges.length === 1;
@@ -447,13 +447,46 @@ export function createDisplayEdgesGeometry(geometry, angleDegrees = 80, toleranc
       edges.slice(index + 1).some((other) => current.normal.dot(other.normal) < threshold),
     );
     if ((isBoundary && shouldShowBoundaryEdge(edge.a, edge.b, box, tolerance)) || isCrease) {
-      positions.push(edge.a.x, edge.a.y, edge.a.z, edge.b.x, edge.b.y, edge.b.z);
+      result.push({
+        a: edge.a.clone(),
+        b: edge.b.clone(),
+      });
     }
   }
+  return result;
+}
 
+export function createDisplayEdgesGeometry(geometry, angleDegrees = 80, tolerance = DEFAULT_TOLERANCE) {
+  const positions = [];
+  for (const edge of collectDisplayEdges(geometry, angleDegrees, tolerance)) {
+    positions.push(edge.a.x, edge.a.y, edge.a.z, edge.b.x, edge.b.y, edge.b.z);
+  }
   const result = new THREE.BufferGeometry();
   result.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
   return result;
+}
+
+export function collectDisplaySnapPoints(geometry, angleDegrees = 80, tolerance = DEFAULT_TOLERANCE) {
+  const targets = [];
+  const keySet = new Set();
+
+  const addTarget = (point, kind) => {
+    const key = `${kind}:${point.x.toFixed(3)}:${point.y.toFixed(3)}:${point.z.toFixed(3)}`;
+    if (keySet.has(key)) return;
+    keySet.add(key);
+    targets.push({
+      kind,
+      point: point.clone(),
+    });
+  };
+
+  for (const edge of collectDisplayEdges(geometry, angleDegrees, tolerance)) {
+    addTarget(edge.a, 'vertice');
+    addTarget(edge.b, 'vertice');
+    addTarget(edge.a.clone().add(edge.b).multiplyScalar(0.5), 'punto medio');
+  }
+
+  return targets;
 }
 
 export function createRegionGeometry(geometry, triangleIndexes, offset = 0.03) {

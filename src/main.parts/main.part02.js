@@ -130,7 +130,8 @@ function updateModelActions() {
   ui.emptyState.hidden = hasModel;
 }
 
-function setModelGeometry(geometry, recordHistory = true) {
+function setModelGeometry(geometry, recordHistory = true, options = {}) {
+  const { preserveSketch = false } = options;
   if (recordHistory && model) snapshot();
   clearTransientOverlays();
   clearSelection();
@@ -142,7 +143,7 @@ function setModelGeometry(geometry, recordHistory = true) {
   clearCutPlacement();
   clearTextPlacement();
   clearTransformPreview();
-  clearSketch();
+  if (!preserveSketch) clearSketch();
 
   if (model) {
     scene.remove(model);
@@ -160,9 +161,13 @@ function setModelGeometry(geometry, recordHistory = true) {
   geometry.computeBoundingSphere();
   model = new THREE.Mesh(geometry, modelMaterial);
   scene.add(model);
-  snapPoints = collectGeometrySnapPoints(model.geometry);
+  snapPoints = collectDisplaySnapPoints(model.geometry, MODEL_EDGE_ANGLE);
   updateEdges();
   updateModelActions();
+  if (preserveSketch && (sketchEdges.length || sketchFaces.length || sketchPoints.length)) {
+    updateSketchApplyState();
+    drawSketchPreview();
+  }
   requestRender();
 }
 
@@ -178,7 +183,7 @@ function restoreFrom(source, destination) {
   if (!source.length) return;
   if (model) destination.push(model.geometry.clone());
   const geometry = source.pop();
-  setModelGeometry(geometry, false);
+  setModelGeometry(geometry, false, { preserveSketch: true });
   updateHistoryButtons();
   setStatus('Modifica ripristinata.');
 }
@@ -242,7 +247,7 @@ function deleteSelectedRegion() {
   if (!geometry) {
     clearCurrentModel('Tutte le superfici sono state cancellate. Usa Annulla per ripristinare.');
   } else {
-    setModelGeometry(geometry, false);
+    setModelGeometry(geometry, false, { preserveSketch: true });
     updateHistoryButtons();
     setStatus(`Superficie cancellata: ${triangleCount} triangoli rimossi. Usa Ctrl+Z per annullare.`);
   }
@@ -280,7 +285,7 @@ async function repairCurrentMesh() {
       return;
     }
     snapshot();
-    setModelGeometry(repaired.geometry, false);
+    setModelGeometry(repaired.geometry, false, { preserveSketch: true });
     updateHistoryButtons();
     setStatus(formatRepairReport(repaired.report));
   } catch (error) {
@@ -388,7 +393,7 @@ function transformCurrentModel() {
 
   clearTransformPreview();
   snapshot();
-  setModelGeometry(transformed.geometry, false);
+  setModelGeometry(transformed.geometry, false, { preserveSketch: true });
   updateHistoryButtons();
   resetTransformInputs();
   requestRender();
@@ -804,6 +809,21 @@ function drawSnapIndicator(pick) {
 function updateSnapIndicator(clientX, clientY) {
   if (!['hole', 'measure', 'movehole', 'box', 'cylinder', 'cut', 'text', 'line'].includes(activeTool)) {
     clearSnapIndicator();
+    return;
+  }
+  if (activeTool === 'line') {
+    const extraSnapPoints = sketchSnapTargets();
+    const pick = pickWorkPoint(clientX, clientY, {
+      allowScreenSnap: true,
+      axisStart: sketchPoints.length ? sketchPoints[sketchPoints.length - 1] : null,
+      extraSnapPoints,
+      inferenceDirections: sketchInferenceDirections(),
+      preferWorkPlane: sketchPoints.length > 0,
+      projectSnapsToWorkPlane: !isAutoSketchPlane(),
+      screenSnapPoints: [...extraSnapPoints, ...snapPoints],
+      workPlane: sketchWorkPlane(),
+    });
+    drawSnapIndicator(pick);
     return;
   }
   const axisStart = activeTool === 'line' && sketchPoints.length

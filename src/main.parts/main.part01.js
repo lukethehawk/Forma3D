@@ -17,6 +17,7 @@ import droidSerifRegularUrl from 'three/examples/fonts/droid/droid_serif_regular
 import droidSerifBoldUrl from 'three/examples/fonts/droid/droid_serif_bold.typeface.json?url';
 import droidMonoRegularUrl from 'three/examples/fonts/droid/droid_sans_mono_regular.typeface.json?url';
 import {
+  collectDisplaySnapPoints,
   combineGeometries,
   createDisplayEdgesGeometry,
   createRegionGeometry,
@@ -29,7 +30,6 @@ import {
 import { calculateMeasurement } from './measurement.js';
 import { detectCylindricalHole } from './hole-detection.js';
 import {
-  collectGeometrySnapPoints,
   snapPoint,
   snapPointToAxis,
   snapPointToDirections,

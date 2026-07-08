@@ -221,17 +221,16 @@ ui.newSketchLine.addEventListener('click', () => {
   clearSketchCurrentLine();
 });
 ui.sketchPlane.addEventListener('change', () => {
-  clearSketch();
   const mode = ui.sketchPlane.value === 'auto'
     ? 'Auto 3D: i punti magnetici restano nella loro posizione reale.'
     : `Piano Linea impostato su ${ui.sketchPlane.value.toUpperCase()}.`;
-  setStatus(`${mode} Clicca il primo punto.`);
+  drawSketchPreview(sketchPreviewPoint, sketchPreviewAxis);
+  setStatus(`${mode} Le linee gia tracciate restano in bozza.`);
 });
 ui.sketchInference.addEventListener('change', () => {
-  clearSketch();
   setStatus(ui.sketchInference.checked
-    ? 'Aggancio assi e parallele attivo. Clicca il primo punto.'
-    : 'Aggancio assi e parallele disattivato. Clicca il primo punto.');
+    ? 'Aggancio assi e parallele attivo. Le linee gia tracciate restano in bozza.'
+    : 'Aggancio assi e parallele disattivato. Le linee gia tracciate restano in bozza.');
 });
 ui.holeDiameter.addEventListener('input', drawHoleCreatePreview);
 ui.holeDepth.addEventListener('input', drawHoleCreatePreview);
