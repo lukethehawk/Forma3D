@@ -65,6 +65,14 @@ function clearTextPlacement() {
   ui.applyText.disabled = true;
 }
 
+function clearTransformPreview() {
+  if (!transformPreview) return;
+  scene.remove(transformPreview);
+  disposeObject(transformPreview);
+  transformPreview = null;
+  requestRender();
+}
+
 function clearSketch() {
   sketchPoints = [];
   sketchClosed = false;
@@ -118,6 +126,7 @@ function setModelGeometry(geometry, recordHistory = true) {
   clearCylinderPlacement();
   clearCutPlacement();
   clearTextPlacement();
+  clearTransformPreview();
   clearSketch();
 
   if (model) {
@@ -174,6 +183,7 @@ function clearCurrentModel(message = 'Modello rimosso. Apri un STL o crea una nu
   clearCylinderPlacement();
   clearCutPlacement();
   clearTextPlacement();
+  clearTransformPreview();
   clearSketch();
 
   if (model) {
@@ -266,51 +276,109 @@ async function repairCurrentMesh() {
   }
 }
 
+function transformValuesFromInputs() {
+  return {
+    translation: inputVector(ui.transformTranslateInputs),
+    rotation: new THREE.Euler(
+      THREE.MathUtils.degToRad(parseDecimal(ui.transformRotateInputs[0].value, 0)),
+      THREE.MathUtils.degToRad(parseDecimal(ui.transformRotateInputs[1].value, 0)),
+      THREE.MathUtils.degToRad(parseDecimal(ui.transformRotateInputs[2].value, 0)),
+      'XYZ',
+    ),
+    scale: parseDecimal(ui.transformScale.value, 1),
+  };
+}
+
+function transformHasChanges(values) {
+  const hasTranslation = values.translation.lengthSq() > 1e-10;
+  const hasRotation = Math.abs(values.rotation.x) + Math.abs(values.rotation.y) + Math.abs(values.rotation.z) > 1e-10;
+  const hasScale = Math.abs(values.scale - 1) > 1e-10;
+  return hasTranslation || hasRotation || hasScale;
+}
+
+function transformMatrixForGeometry(geometry, values) {
+  geometry.computeBoundingBox();
+  const center = geometry.boundingBox.getCenter(new THREE.Vector3());
+  const matrix = new THREE.Matrix4();
+  matrix.multiply(new THREE.Matrix4().makeTranslation(values.translation.x, values.translation.y, values.translation.z));
+  matrix.multiply(new THREE.Matrix4().makeTranslation(center.x, center.y, center.z));
+  matrix.multiply(new THREE.Matrix4().makeRotationFromEuler(values.rotation));
+  matrix.multiply(new THREE.Matrix4().makeScale(values.scale, values.scale, values.scale));
+  matrix.multiply(new THREE.Matrix4().makeTranslation(-center.x, -center.y, -center.z));
+  return matrix;
+}
+
+function resetTransformInputs() {
+  ui.transformTranslateInputs.forEach((input) => {
+    input.value = '0';
+  });
+  ui.transformRotateInputs.forEach((input) => {
+    input.value = '0';
+  });
+  ui.transformScale.value = '1';
+}
+
+function transformedGeometryFromInputs() {
+  if (!model) {
+    return null;
+  }
+
+  const values = transformValuesFromInputs();
+  if (!(values.scale > 0)) {
+    return null;
+  }
+
+  if (!transformHasChanges(values)) {
+    return null;
+  }
+
+  const geometry = model.geometry.clone();
+  geometry.applyMatrix4(transformMatrixForGeometry(geometry, values));
+  geometry.computeVertexNormals();
+  geometry.computeBoundingBox();
+  geometry.computeBoundingSphere();
+  return {
+    geometry,
+    values,
+  };
+}
+
+function drawTransformPreview() {
+  if (activeTool !== 'transform') return;
+  clearTransformPreview();
+  const transformed = transformedGeometryFromInputs();
+  if (!transformed) return;
+  transformPreview = setPreviewMesh(
+    transformPreview,
+    transformed.geometry,
+    0x1679b8,
+    'transform-preview',
+  );
+}
+
 function transformCurrentModel() {
   if (!model) {
     setStatus('Apri o crea un modello prima di trasformarlo.');
     return;
   }
 
-  const translation = inputVector(ui.transformTranslateInputs);
-  const rotation = new THREE.Euler(
-    THREE.MathUtils.degToRad(parseDecimal(ui.transformRotateInputs[0].value, 0)),
-    THREE.MathUtils.degToRad(parseDecimal(ui.transformRotateInputs[1].value, 0)),
-    THREE.MathUtils.degToRad(parseDecimal(ui.transformRotateInputs[2].value, 0)),
-    'XYZ',
-  );
-  const scale = parseDecimal(ui.transformScale.value, 1);
-  if (!(scale > 0)) {
-    setStatus('La scala deve essere maggiore di zero.');
+  const transformed = transformedGeometryFromInputs();
+  if (!transformed) {
+    const scale = parseDecimal(ui.transformScale.value, 1);
+    setStatus(scale > 0
+      ? 'Inserisci almeno uno spostamento, una rotazione o una scala diversa da 1.'
+      : 'La scala deve essere maggiore di zero.');
     return;
   }
 
-  const hasTranslation = translation.lengthSq() > 1e-10;
-  const hasRotation = Math.abs(rotation.x) + Math.abs(rotation.y) + Math.abs(rotation.z) > 1e-10;
-  const hasScale = Math.abs(scale - 1) > 1e-10;
-  if (!hasTranslation && !hasRotation && !hasScale) {
-    setStatus('Inserisci almeno uno spostamento, una rotazione o una scala diversa da 1.');
-    return;
-  }
-
-  const geometry = model.geometry.clone();
-  geometry.computeBoundingBox();
-  const center = geometry.boundingBox.getCenter(new THREE.Vector3());
-  const matrix = new THREE.Matrix4()
-    .makeTranslation(translation.x, translation.y, translation.z)
-    .multiply(new THREE.Matrix4().makeTranslation(center.x, center.y, center.z))
-    .multiply(new THREE.Matrix4().makeRotationFromEuler(rotation))
-    .multiply(new THREE.Matrix4().makeScale(scale, scale, scale))
-    .multiply(new THREE.Matrix4().makeTranslation(-center.x, -center.y, -center.z));
-
-  geometry.applyMatrix4(matrix);
-  geometry.computeVertexNormals();
+  clearTransformPreview();
   snapshot();
-  setModelGeometry(geometry, false);
+  setModelGeometry(transformed.geometry, false);
   updateHistoryButtons();
-  fitView();
+  resetTransformInputs();
+  requestRender();
   setStatus(
-    `Trasformazione applicata: X ${formatMillimeters(translation.x, true)}, Y ${formatMillimeters(translation.y, true)}, Z ${formatMillimeters(translation.z, true)}, scala ${formatDecimal(scale)}x.`,
+    `Trasformazione applicata: X ${formatMillimeters(transformed.values.translation.x, true)}, Y ${formatMillimeters(transformed.values.translation.y, true)}, Z ${formatMillimeters(transformed.values.translation.z, true)}, scala ${formatDecimal(transformed.values.scale)}x.`,
   );
 }
 
@@ -489,6 +557,7 @@ function setTool(tool) {
   if (activeTool === 'cut' && tool !== 'cut') clearCutPlacement();
   if (activeTool === 'text' && tool !== 'text') clearTextPlacement();
   if (activeTool === 'line' && tool !== 'line') clearSketch();
+  if (activeTool === 'transform' && tool !== 'transform') clearTransformPreview();
   clearSnapIndicator();
   activeTool = tool;
   if (tool === 'measure') clearSelection();

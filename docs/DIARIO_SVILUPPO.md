@@ -477,6 +477,14 @@ attorno al centro del modello, poi `setModelGeometry()` ricostruisce snap point,
 bordi e bounding volume. Questo evita di lasciare una trasformazione sulla mesh
 Three.js che potrebbe confondere booleane, raycast o export STL successivi.
 
+Gli input di Trasforma sono trasformazioni incrementali: una preview wireframe
+blu viene aggiornata in tempo reale tramite la stessa matrice usata da
+`transformCurrentModel()`. Dopo l'applicazione i valori vengono riportati a
+spostamento/rotazione `0` e scala `1`, cosi' la stessa trasformazione non viene
+riapplicata per errore. L'applicazione non chiama `fitView()`, altrimenti uno
+spostamento puro sarebbe visivamente nascosto dal ricentramento automatico della
+camera.
+
 ## Snap
 
 `pickWorkPoint()` e' il punto comune per strumenti che posizionano elementi.

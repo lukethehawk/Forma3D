@@ -92,6 +92,14 @@ ui.removeModelButton.addEventListener('click', removeCurrentModel);
 ui.repairModelButton.addEventListener('click', repairCurrentMesh);
 document.querySelector('#export-file').addEventListener('click', exportStl);
 ui.applyTransform.addEventListener('click', transformCurrentModel);
+[
+  ...ui.transformTranslateInputs,
+  ...ui.transformRotateInputs,
+  ui.transformScale,
+].forEach((input) => {
+  input.addEventListener('input', drawTransformPreview);
+  input.addEventListener('change', drawTransformPreview);
+});
 document.querySelectorAll('.tool').forEach((button) => {
   button.addEventListener('click', () => setTool(button.dataset.tool));
 });

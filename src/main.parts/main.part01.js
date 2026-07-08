@@ -127,6 +127,7 @@ let cutPlacement = null;
 let cutPreview = null;
 let textPlacement = null;
 let textPreview = null;
+let transformPreview = null;
 let sketchPoints = [];
 let sketchPreview = null;
 let sketchClosed = false;
@@ -489,6 +490,7 @@ function clearTransientOverlays() {
   cylinderPreview = null;
   cutPreview = null;
   textPreview = null;
+  transformPreview = null;
   sketchPreview = null;
   snapIndicator = null;
 }
