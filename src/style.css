@@ -168,8 +168,8 @@ button {
   display: block;
 }
 
-.options-help:hover .options-tooltip,
-.options-help:focus-within .options-tooltip {
+.help-dot:hover + .options-tooltip,
+.help-dot:focus + .options-tooltip {
   display: grid;
 }
 
