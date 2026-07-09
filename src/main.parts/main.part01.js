@@ -467,6 +467,34 @@ const languageText = {
 const staticTranslations = {
   en: {
     'Modello senza titolo': 'Untitled model',
+    Strumenti: 'Tools',
+    'Seleziona (Spazio)': 'Select (Space)',
+    'Spingi/Tira (P)': 'Push/Pull (P)',
+    Solidi: 'Solids',
+    'Cilindro (C)': 'Cylinder (C)',
+    'Cono (V)': 'Cone (V)',
+    'Piramide (I)': 'Pyramid (I)',
+    'Ingranaggio (K)': 'Gear (K)',
+    'Testo 3D (A)': '3D Text (A)',
+    'Operazioni booleane': 'Boolean operations',
+    'Sottrai solido (T)': 'Subtract solid (T)',
+    'Foro (H)': 'Hole (H)',
+    'Sposta foro (F)': 'Move hole (F)',
+    'Strumenti 2D': '2D tools',
+    'Linea (L)': 'Line (L)',
+    'Piani (N)': 'Planes (N)',
+    'Misura (M)': 'Measure (M)',
+    'Trasforma (G)': 'Transform (G)',
+    'Orbita (O)': 'Orbit (O)',
+    Panoramica: 'Pan',
+    'Inquadra tutto': 'Zoom to fit',
+    'Area di modellazione 3D': '3D modeling area',
+    'Viste modello': 'Model views',
+    Chiudi: 'Close',
+    'Annulla (Ctrl+Z)': 'Undo (Ctrl+Z)',
+    'Ripristina (Ctrl+Y)': 'Redo (Ctrl+Y)',
+    'Aumenta valore': 'Increase value',
+    'Diminuisci valore': 'Decrease value',
     'Apri un file STL': 'Open an STL file',
     'oppure prova subito sul blocco di esempio': 'or start with the example block',
     'Clic sinistro: seleziona · Rotellina premuta: orbita · Rotellina: zoom · Tasto destro: panoramica': 'Left click: select · Middle drag: orbit · Wheel: zoom · Right button: pan',
@@ -474,6 +502,7 @@ const staticTranslations = {
     FRONTE: 'FRONT',
     STRUMENTO: 'TOOL',
     Seleziona: 'Select',
+    SELEZIONE: 'SELECTION',
     'Modalita selezione': 'Selection mode',
     Faccia: 'Face',
     Oggetto: 'Object',
@@ -502,14 +531,23 @@ const staticTranslations = {
     'In modalita Oggetto puoi cancellare o trasformare il solido. Per Spingi/Tira passa a Faccia.': 'In Object mode you can delete or transform the solid. For Push/Pull, switch to Face.',
     'Blocco di esempio pronto. Prova Spingi/Tira o Foro.': 'Example block ready. Try Push/Pull or Hole.',
     'Modifica ripristinata.': 'Change restored.',
+    Lunghezza: 'Length',
+    'Clicca il primo punto.': 'Click the first point.',
+    'Nessun punto selezionato': 'No point selected',
+    'Clicca una superficie per impostare centro e direzione.': 'Click a surface to set center and direction.',
+    'Il foro parte dal punto scelto e procede dentro il pezzo.': 'The hole starts from the picked point and goes into the part.',
+    'Nessun foro selezionato': 'No hole selected',
+    'Clicca la parete interna del foro.': 'Click the inner wall of the hole.',
+    'Dopo aver scelto il foro, clicca il nuovo centro sulla piastra.': 'After choosing the hole, click the new center on the plate.',
+    'Crea foro': 'Create hole',
     Distanza: 'Distance',
     'Valore positivo: tira. Valore negativo: spingi.': 'Positive value: pull. Negative value: push.',
     'Applica Spingi/Tira': 'Apply Push/Pull',
     'Spingi/Tira': 'Push/Pull',
     'Clicca una superficie piana, inserisci la distanza e applica.': 'Click a flat surface, enter the distance, and apply.',
     'Spingi/Tira: clicca la faccia da allargare o restringere.': 'Push/Pull: click the face to expand or shrink.',
+    'Spingi/Tira: clicca una superficie piana.': 'Push/Pull: click a flat surface.',
     'Centro foro': 'Hole center',
-    'Nessun punto selezionato': 'No point selected',
     'Clicca una faccia: il foro entra lungo la normale della superficie.': 'Click a face: the hole follows the surface normal.',
     'Diametro foro': 'Hole diameter',
     'Profondita foro': 'Hole depth',
@@ -520,13 +558,27 @@ const staticTranslations = {
     'Foro: clicca il centro sulla superficie. Verde = anteprima del taglio.': 'Hole: click the center on the surface. Green = cut preview.',
     Ricomincia: 'Restart',
     'Foro da spostare': 'Hole to move',
+    'Foro riconosciuto': 'Recognized hole',
     'Clicca la parete interna del foro da spostare.': 'Click the inner wall of the hole to move.',
     'Nuovo centro': 'New center',
     'Sposta foro': 'Move hole',
+    'Sposta il foro': 'Move the hole',
     'Clicca la parete interna del foro, poi scegli il nuovo centro sulla piastra.': 'Click the inner wall of the hole, then choose the new center on the plate.',
     'Sposta foro: prima clicca dentro il foro, poi clicca la nuova posizione.': 'Move hole: first click inside the hole, then click the new position.',
     'Punto base': 'Base point',
+    'Punto di appoggio': 'Base point',
     'Clicca dove vuoi appoggiare il parallelepipedo.': 'Click where you want to place the box.',
+    'Si aggancia a vertici vicini o alla griglia da 1 mm.': 'Snaps to nearby vertices or the 1 mm grid.',
+    "Il punto cliccato e' il centro della base. Arancione sottrae, verde somma.": 'The clicked point is the base center. Orange subtracts, green adds.',
+    'Clicca dove vuoi appoggiare il cilindro.': 'Click where you want to place the cylinder.',
+    'Clicca dove vuoi appoggiare il cono.': 'Click where you want to place the cone.',
+    'Clicca dove vuoi appoggiare la piramide.': 'Click where you want to place the pyramid.',
+    "Clicca dove vuoi appoggiare l'ingranaggio.": 'Click where you want to place the gear.',
+    'Clicca dove vuoi creare il piano.': 'Click where you want to create the plane.',
+    'Clicca dove vuoi appoggiare il testo.': 'Click where you want to place the text.',
+    'Clicca punti, vertici o punti medi. Le guide restano finche premi Ricomincia.': 'Click points, vertices or midpoints. Guides stay until you press Restart.',
+    "guide e": 'guides and',
+    "facce in bozza. Clicca un punto per iniziare un'altra linea.": 'draft faces. Click a point to start another line.',
     Operazione: 'Operation',
     'Somma al solido': 'Add to solid',
     'Sottrai dal solido': 'Subtract from solid',
@@ -540,10 +592,10 @@ const staticTranslations = {
     Parallelepipedo: 'Box',
     'Clicca il punto di appoggio, regola le misure e scegli se sommare o sottrarre dal solido.': 'Click the base point, adjust dimensions, and choose whether to add or subtract from the solid.',
     'Parallelepipedo: clicca sul piano o su una faccia. Anteprima arancione = nuovo solido.': 'Box: click the work plane or a face. Orange preview = new solid.',
+    'Parallelepipedo: clicca il punto di appoggio, poi regola misure e somma/sottrai.': 'Box: click the base point, then adjust dimensions and add/subtract.',
+    'Parallelepipedo impostato. Regola misure, spostamenti e operazione.': 'Box set. Adjust dimensions, offsets and operation.',
+    'Clicca il punto di appoggio del parallelepipedo.': 'Click the box base point.',
     'Centro base': 'Base center',
-    'Clicca dove vuoi appoggiare il cilindro.': 'Click where you want to place the cylinder.',
-    'Clicca dove vuoi appoggiare il cono.': 'Click where you want to place the cone.',
-    'Clicca dove vuoi appoggiare la piramide.': 'Click where you want to place the pyramid.',
     'Asse su faccia usa la normale della superficie cliccata.': 'Face axis uses the clicked surface normal.',
     Asse: 'Axis',
     'Asse della faccia': 'Face axis',
@@ -557,10 +609,15 @@ const staticTranslations = {
     'Applica cilindro': 'Apply cylinder',
     'Clicca il centro di appoggio, scegli asse, diametro, altezza e operazione booleana.': 'Click the base center, choose axis, diameter, height and boolean operation.',
     'Cilindro: clicca dove appoggiare il centro. Puoi sommare o sottrarre.': 'Cylinder: click where to place the center. You can add or subtract.',
+    'Cilindro: clicca il centro di appoggio, poi regola diametro, altezza e asse.': 'Cylinder: click the base center, then adjust diameter, height and axis.',
+    'Cilindro impostato. Regola diametro, altezza, asse e operazione.': 'Cylinder set. Adjust diameter, height, axis and operation.',
+    'Clicca il centro di appoggio del cilindro.': 'Click the cylinder base center.',
     'Applica cono': 'Apply cone',
     Cono: 'Cone',
     'Clicca il centro della base, scegli asse, diametro, altezza e operazione booleana.': 'Click the base center, choose axis, diameter, height and boolean operation.',
     'Cono: clicca il centro base, poi regola diametro, altezza e asse.': 'Cone: click the base center, then adjust diameter, height and axis.',
+    'Cono impostato. Regola diametro, altezza, asse e operazione.': 'Cone set. Adjust diameter, height, axis and operation.',
+    'Clicca il centro di appoggio del cono.': 'Click the cone base center.',
     'La base rettangolare resta centrata sul punto scelto.': 'The rectangular base stays centered on the picked point.',
     'Base X': 'Base X',
     'Base Y': 'Base Y',
@@ -568,7 +625,8 @@ const staticTranslations = {
     Piramide: 'Pyramid',
     'Clicca il centro della base, regola base, altezza, asse e operazione booleana.': 'Click the base center, then adjust base, height, axis and boolean operation.',
     'Piramide: clicca il centro base, poi regola base X, base Y e altezza.': 'Pyramid: click the base center, then adjust base X, base Y and height.',
-    "Clicca dove vuoi appoggiare l'ingranaggio.": 'Click where you want to place the gear.',
+    'Piramide impostata. Regola base, altezza, asse e operazione.': 'Pyramid set. Adjust base, height, axis and operation.',
+    'Clicca il centro di appoggio della piramide.': 'Click the pyramid base center.',
     'Profilo a denti dritti semplificato, pensato per stampa 3D.': 'Simplified spur gear profile for 3D printing.',
     'Numero denti': 'Teeth',
     Modulo: 'Module',
@@ -586,8 +644,9 @@ const staticTranslations = {
     Ingranaggio: 'Gear',
     'Crea un ingranaggio cilindrico a denti dritti con foro centrale e mozzo opzionale.': 'Create a simplified spur gear with center bore and optional hub.',
     'Ingranaggio: clicca il centro base, poi regola denti, modulo, spessore e foro.': 'Gear: click the base center, then adjust teeth, module, width and bore.',
+    'Ingranaggio impostato. Regola denti, modulo, foro, mozzo e operazione.': 'Gear set. Adjust teeth, module, bore, hub and operation.',
+    "Clicca il centro di appoggio dell'ingranaggio.": 'Click the gear base center.',
     'Centro piano': 'Plane center',
-    'Clicca dove vuoi creare il piano.': 'Click where you want to create the plane.',
     "Il piano e' una faccia piatta: usa Spingi/Tira per darle volume.": 'The plane is a flat face: use Push/Pull to give it volume.',
     'Forma piano': 'Plane shape',
     Rettangolo: 'Rectangle',
@@ -602,6 +661,8 @@ const staticTranslations = {
     Piani: 'Planes',
     'Crea rettangoli, quadrati o tondi piatti da usare come facce di partenza.': 'Create flat rectangles, squares or circles to use as starting faces.',
     'Piani: clicca centro e forma. Poi usa Spingi/Tira per dare volume.': 'Planes: click center and shape. Then use Push/Pull to add volume.',
+    'Piani: clicca il centro della faccia piatta.': 'Planes: click the center of the flat face.',
+    'Piano impostato. Scegli forma, dimensioni e asse, poi applica.': 'Plane set. Choose shape, dimensions and axis, then apply.',
     'Figura da sottrarre': 'Shape to subtract',
     'Scegli forma e clicca dove vuoi togliere materiale.': 'Choose a shape and click where you want to remove material.',
     'Anteprima arancione: volume che verra rimosso dallo STL.': 'Orange preview: volume that will be removed from the STL.',
@@ -616,6 +677,9 @@ const staticTranslations = {
     'Sottrai solido': 'Subtract solid',
     'Crea un box o un cilindro di taglio e sottrailo dal file STL caricato.': 'Create a box or cylinder cutting tool and subtract it from the loaded STL.',
     "Sottrai: clicca sull'STL o sul piano, regola la figura arancione e applica.": 'Subtract: click the STL or work plane, adjust the orange shape and apply.',
+    'Sottrai: scegli box o cilindro, clicca il punto e applica il taglio.': 'Subtract: choose box or cylinder, click the point and apply the cut.',
+    'Sottrai: clicca il punto in cui piazzare la figura di taglio.': 'Subtract: click where to place the cutting shape.',
+    'Figura di sottrazione impostata. Regola dimensioni e spostamenti, poi applica.': 'Subtraction shape set. Adjust dimensions and offsets, then apply.',
     Guide: 'Guides',
     'Clicca punti, vertici e punti medi per creare linee guida e facce.': 'Click points, vertices and midpoints to create guides and faces.',
     'Le linee sono elementi di costruzione: gli altri strumenti possono agganciarsi a estremi, midpoint e segmenti.': 'Lines are construction elements: other tools can snap to endpoints, midpoints and segments.',
@@ -631,14 +695,16 @@ const staticTranslations = {
     Linea: 'Line',
     'Traccia guide 3D indipendenti. Quando chiudono un contorno, nasce anche una faccia applicabile al modello.': 'Draw independent 3D guides. When they close an outline, a face can also be applied to the model.',
     'Linea: gli altri strumenti si agganciano a estremi, midpoint e segmenti delle guide.': 'Line: other tools snap to endpoints, midpoints and guide segments.',
+    'Linea: crea guide indipendenti. Gli altri strumenti si agganciano a estremi, midpoint e segmenti.': 'Line: create independent guides. Other tools snap to endpoints, midpoints and segments.',
+    'Linea: clicca il primo punto della sagoma.': 'Line: click the first point of the outline.',
     'Punto inizio testo': 'Text start point',
-    'Clicca dove vuoi appoggiare il testo.': 'Click where you want to place the text.',
     "Il punto cliccato e' l'angolo basso sinistro del testo.": 'The clicked point is the lower-left corner of the text.',
     Testo: 'Text',
     Font: 'Font',
     Bold: 'Bold',
     Corsivo: 'Italic',
     'Sottrai / incidi nel solido': 'Subtract / engrave into solid',
+    "Scrivendo o cambiando valori l'anteprima si aggiorna in tempo reale.": 'The preview updates live while typing or changing values.',
     'Altezza lettere': 'Letter height',
     Profondita: 'Depth',
     'Larghezza lettere': 'Letter width',
@@ -648,6 +714,8 @@ const staticTranslations = {
     'Testo 3D': '3D Text',
     'Clicca il punto di partenza, scrivi il testo e regola font, profondita, larghezza ed effetti.': 'Click the start point, type the text, and adjust font, depth, width and effects.',
     'Testo: clicca il punto basso sinistro, poi modifica il pannello a destra.': 'Text: click the lower-left point, then edit the right panel.',
+    'Testo: clicca il punto basso sinistro, poi scrivi e regola profondita e font.': 'Text: click the lower-left point, then type and adjust depth and font.',
+    'Testo: clicca il punto basso sinistro in cui appoggiarlo.': 'Text: click the lower-left point where it should rest.',
     'Modello intero': 'Whole model',
     'Trasforma la mesh corrente': 'Transform the current mesh',
     'Le modifiche vengono applicate ai vertici, quindi restano compatibili con STL e booleane successive.': 'Changes are applied to vertices, so they remain compatible with STL and later booleans.',
@@ -659,12 +727,20 @@ const staticTranslations = {
     'Ruota Z': 'Rotate Z',
     'Scala uniforme': 'Uniform scale',
     'Rotazione e scala avvengono attorno al centro del modello.': 'Rotation and scale happen around the model center.',
+    'La preview wireframe si aggiorna in tempo reale. Dopo Applica i valori tornano a zero/scala 1.': 'The wireframe preview updates live. After Apply, values reset to zero/scale 1.',
     'Applica trasformazione': 'Apply transform',
     Trasforma: 'Transform',
     "Sposta, ruota o scala l'intero modello applicando la trasformazione ai vertici STL.": 'Move, rotate or scale the whole model by applying the transform to STL vertices.',
     'Trasforma: inserisci spostamento, rotazione o scala e applica.': 'Transform: enter translation, rotation or scale and apply.',
+    'Trasforma: inserisci valori e applica al modello.': 'Transform: enter values and apply them to the model.',
     'Misure': 'Measurements',
+    'Distanza tra i punti': 'Distance between points',
+    'Nuova misura': 'New measurement',
+    'Asse X': 'X axis',
+    'Asse Y': 'Y axis',
+    'Asse Z': 'Z axis',
     Misura: 'Measure',
+    'Misura: clicca il primo punto.': 'Measure: click the first point.',
     'Clicca due punti sul modello. La distanza viene scomposta sugli assi X, Y e Z.': 'Click two points on the model. The distance is split across X, Y and Z axes.',
     'Misura: clicca il primo punto, poi il secondo. Rosso X, verde Y, blu Z.': 'Measure: click the first point, then the second. Red X, green Y, blue Z.',
     Totale: 'Total',
@@ -674,6 +750,7 @@ const staticTranslations = {
     Panoramica: 'Pan',
     'Trascina con il tasto sinistro per spostare la vista.': 'Drag with the left button to pan the view.',
     'Panoramica: trascina per spostare il foglio di lavoro.': 'Pan: drag to move the workspace.',
+    'Panoramica: trascina per spostare la vista.': 'Pan: drag to move the view.',
     'Annulla': 'Cancel',
     'Ripristina': 'Redo',
     Pronto: 'Ready',
@@ -691,6 +768,8 @@ function translateStaticText(language) {
     '.tool-form label',
     '.tool-form button',
     '.tool-form option',
+    '.tool-form small',
+    '.tool-form strong',
     '.hole-readout span',
     '.hole-readout strong',
     '.hole-readout small',
@@ -700,12 +779,36 @@ function translateStaticText(language) {
     '.view-cube button',
     '.eyebrow',
     '.measure-total span',
+    '.measure-total strong',
+    '.axis-measure span',
+    '#measure-axis-summary',
+    '.measurement label',
     '.secondary-button',
+    '.history-actions button',
+    '#selection-info span',
+    '#selection-info strong',
+    '#status',
   ].join(','));
   elements.forEach((element) => {
     if (!element.dataset.i18nSource) element.dataset.i18nSource = element.textContent.trim();
     const source = element.dataset.i18nSource;
     element.textContent = translations?.[source] ?? source;
+  });
+}
+
+function translateAttributes(language) {
+  const translations = staticTranslations[language];
+  document.querySelectorAll('[title], [aria-label]').forEach((element) => {
+    if (element.hasAttribute('title')) {
+      if (!element.dataset.i18nTitleSource) element.dataset.i18nTitleSource = element.getAttribute('title');
+      const source = element.dataset.i18nTitleSource;
+      element.setAttribute('title', translations?.[source] ?? source);
+    }
+    if (element.hasAttribute('aria-label')) {
+      if (!element.dataset.i18nAriaLabelSource) element.dataset.i18nAriaLabelSource = element.getAttribute('aria-label');
+      const source = element.dataset.i18nAriaLabelSource;
+      element.setAttribute('aria-label', translations?.[source] ?? source);
+    }
   });
 }
 
@@ -740,6 +843,7 @@ function applyLanguage(language) {
   ui.languageSelect.querySelector('option[value="en"]').textContent = '🇬🇧 English';
   ui.languageSelect.querySelector('option[value="it"]').textContent = '🇮🇹 Italiano';
   translateStaticText(language);
+  translateAttributes(language);
   setButtonHtml('#open-file', 'O', dictionary.open);
   setButtonHtml('#remove-model', 'X', dictionary.remove);
   setButtonHtml('#options-menu-button', '', dictionary.options, true);
@@ -787,8 +891,8 @@ function renderFrame() {
 
 function showBusy(title, message) {
   appBusy = true;
-  ui.busyTitle.textContent = title;
-  ui.busyMessage.textContent = message;
+  ui.busyTitle.textContent = t(title);
+  ui.busyMessage.textContent = t(message);
   ui.busyOverlay.hidden = false;
   document.body.classList.add('is-busy');
   setStatus(title);
@@ -886,7 +990,7 @@ function clearSelection() {
 function updateMeasureBoxMode() {
   const isSketchLengthMode = activeTool === 'line';
   const canEditSketchLength = isSketchLengthMode && sketchPoints.length > 0 && !sketchClosed;
-  ui.measureLabel.textContent = isSketchLengthMode ? 'Lunghezza' : 'Misure';
+  ui.measureLabel.textContent = isSketchLengthMode ? t('Lunghezza') : t('Misure');
   ui.measureValue.readOnly = !canEditSketchLength;
   ui.measureValue.placeholder = isSketchLengthMode ? 'digita mm' : '';
   ui.measureValue.classList.toggle('length-entry', isSketchLengthMode);
@@ -966,7 +1070,7 @@ function clearMeasurement(resetPanel = true) {
     ui.measureX.textContent = '-- mm';
     ui.measureY.textContent = '-- mm';
     ui.measureZ.textContent = '-- mm';
-    ui.measureAxisSummary.textContent = 'Clicca il primo punto.';
+    ui.measureAxisSummary.textContent = t('Clicca il primo punto.');
     ui.measureValue.value = '-- mm';
   }
 }
@@ -979,9 +1083,9 @@ function clearHoleCreate() {
     holeCreatePreview = null;
     requestRender();
   }
-  ui.holeCreateInfo.textContent = 'Nessun punto selezionato';
-  ui.holeCreateAxis.textContent = 'Clicca una superficie per impostare centro e direzione.';
-  ui.holeCreateHelp.textContent = 'Il foro parte dal punto scelto e procede dentro il pezzo.';
+  ui.holeCreateInfo.textContent = t('Nessun punto selezionato');
+  ui.holeCreateAxis.textContent = t('Clicca una superficie per impostare centro e direzione.');
+  ui.holeCreateHelp.textContent = t('Il foro parte dal punto scelto e procede dentro il pezzo.');
   ui.holeOffsetInputs.forEach((input) => {
     input.value = '0';
     input.disabled = true;
@@ -997,7 +1101,7 @@ function clearHoleMove() {
     holeMovePreview = null;
     requestRender();
   }
-  ui.moveHoleInfo.textContent = 'Nessun foro selezionato';
-  ui.moveHoleAxis.textContent = 'Clicca la parete interna del foro.';
-  ui.moveHoleHelp.textContent = 'Dopo aver scelto il foro, clicca il nuovo centro sulla piastra.';
+  ui.moveHoleInfo.textContent = t('Nessun foro selezionato');
+  ui.moveHoleAxis.textContent = t('Clicca la parete interna del foro.');
+  ui.moveHoleHelp.textContent = t('Dopo aver scelto il foro, clicca il nuovo centro sulla piastra.');
   ui.moveHoleInputs.forEach((input) => {

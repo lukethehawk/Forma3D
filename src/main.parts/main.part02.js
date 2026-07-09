@@ -12,7 +12,7 @@ function clearBoxPlacement() {
     boxPreview = null;
     requestRender();
   }
-  ui.boxInfo.textContent = 'Clicca dove vuoi appoggiare il parallelepipedo.';
+  ui.boxInfo.textContent = t('Clicca dove vuoi appoggiare il parallelepipedo.');
   ui.boxOffsetInputs.forEach((input) => {
     input.value = '0';
   });
@@ -27,7 +27,7 @@ function clearCylinderPlacement() {
     cylinderPreview = null;
     requestRender();
   }
-  ui.cylinderInfo.textContent = 'Clicca dove vuoi appoggiare il cilindro.';
+  ui.cylinderInfo.textContent = t('Clicca dove vuoi appoggiare il cilindro.');
   ui.cylinderOffsetInputs.forEach((input) => {
     input.value = '0';
   });
@@ -42,7 +42,7 @@ function clearConePlacement() {
     conePreview = null;
     requestRender();
   }
-  ui.coneInfo.textContent = 'Clicca dove vuoi appoggiare il cono.';
+  ui.coneInfo.textContent = t('Clicca dove vuoi appoggiare il cono.');
   ui.coneOffsetInputs.forEach((input) => {
     input.value = '0';
   });
@@ -57,7 +57,7 @@ function clearPyramidPlacement() {
     pyramidPreview = null;
     requestRender();
   }
-  ui.pyramidInfo.textContent = 'Clicca dove vuoi appoggiare la piramide.';
+  ui.pyramidInfo.textContent = t('Clicca dove vuoi appoggiare la piramide.');
   ui.pyramidOffsetInputs.forEach((input) => {
     input.value = '0';
   });
@@ -72,7 +72,7 @@ function clearGearPlacement() {
     gearPreview = null;
     requestRender();
   }
-  ui.gearInfo.textContent = "Clicca dove vuoi appoggiare l'ingranaggio.";
+  ui.gearInfo.textContent = t("Clicca dove vuoi appoggiare l'ingranaggio.");
   ui.gearOffsetInputs.forEach((input) => {
     input.value = '0';
   });
@@ -87,7 +87,7 @@ function clearPlanePlacement() {
     planePreview = null;
     requestRender();
   }
-  ui.planeInfo.textContent = 'Clicca dove vuoi creare il piano.';
+  ui.planeInfo.textContent = t('Clicca dove vuoi creare il piano.');
   ui.planeOffsetInputs.forEach((input) => {
     input.value = '0';
   });
@@ -102,7 +102,7 @@ function clearCutPlacement() {
     cutPreview = null;
     requestRender();
   }
-  ui.cutInfo.textContent = 'Scegli forma e clicca dove vuoi togliere materiale.';
+  ui.cutInfo.textContent = t('Scegli forma e clicca dove vuoi togliere materiale.');
   ui.cutOffsetInputs.forEach((input) => {
     input.value = '0';
   });
@@ -118,7 +118,7 @@ function clearTextPlacement() {
     textPreview = null;
     requestRender();
   }
-  ui.textInfo.textContent = 'Clicca dove vuoi appoggiare il testo.';
+  ui.textInfo.textContent = t('Clicca dove vuoi appoggiare il testo.');
   ui.textOffsetInputs.forEach((input) => {
     input.value = '0';
   });
@@ -147,9 +147,9 @@ function clearSketch() {
     sketchPreview = null;
     requestRender();
   }
-  ui.sketchInfo.textContent = 'Clicca punti, vertici o punti medi. Le guide restano finche premi Ricomincia.';
+  ui.sketchInfo.textContent = t('Clicca punti, vertici o punti medi. Le guide restano finche premi Ricomincia.');
   updateMeasureBoxMode();
-  ui.applySketch.textContent = 'Applica facce';
+  ui.applySketch.textContent = t('Applica facce');
   ui.applySketch.disabled = true;
 }
 
@@ -162,7 +162,9 @@ function clearSketchCurrentLine() {
   ui.measureValue.value = '-- mm';
   updateMeasureBoxMode();
   drawSketchPreview();
-  ui.sketchInfo.textContent = `${sketchEdges.length} guide e ${sketchFaces.length} facce in bozza. Clicca un punto per iniziare un'altra linea.`;
+  ui.sketchInfo.textContent = currentLanguage === 'en'
+    ? `${sketchEdges.length} guides and ${sketchFaces.length} draft faces. Click a point to start another line.`
+    : `${sketchEdges.length} guide e ${sketchFaces.length} facce in bozza. Clicca un punto per iniziare un'altra linea.`;
 }
 
 function updateEdges() {
