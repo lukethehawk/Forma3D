@@ -1008,14 +1008,56 @@ function updateSnapIndicator(clientX, clientY) {
   drawSnapIndicator(pick);
 }
 
+function triangleAreaFromGeometry(geometry, triangleIndex) {
+  const a = vertexFromGeometry(geometry, triangleIndex, 0);
+  const b = vertexFromGeometry(geometry, triangleIndex, 1);
+  const c = vertexFromGeometry(geometry, triangleIndex, 2);
+  return b.sub(a).cross(c.sub(a)).length() * 0.5;
+}
+
+function vertexFromGeometry(geometry, triangleIndex, corner) {
+  const point = new THREE.Vector3();
+  const position = geometry.getAttribute('position');
+  point.fromBufferAttribute(position, triangleIndex * 3 + corner);
+  return point;
+}
+
+function regionArea(geometry, region) {
+  return region.triangles.reduce((sum, triangle) => sum + triangleAreaFromGeometry(geometry, triangle), 0);
+}
+
+function pickSelectableRegion(clientX, clientY) {
+  if (!model) return null;
+  setRayFromPointer(clientX, clientY);
+  const hits = raycaster.intersectObject(model, false);
+  if (!hits.length) return null;
+  const firstDistance = hits[0].distance;
+  let best = null;
+
+  for (const hit of hits) {
+    if (Math.abs(hit.distance - firstDistance) > 0.02) break;
+    const region = findCoplanarRegion(model.geometry, hit.faceIndex);
+    const area = regionArea(model.geometry, region);
+    if (!best || area < best.area) {
+      best = {
+        area,
+        hit,
+        region,
+      };
+    }
+  }
+
+  return best;
+}
+
 function selectAt(clientX, clientY) {
-  const hit = raycastModel(clientX, clientY);
-  if (!hit) {
+  const picked = pickSelectableRegion(clientX, clientY);
+  if (!picked) {
     clearSelection();
     return;
   }
 
-  const region = findCoplanarRegion(model.geometry, hit.faceIndex);
+  const { hit, region } = picked;
   clearSelection();
   selected = {
     point: hit.point.clone(),

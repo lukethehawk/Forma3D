@@ -605,7 +605,8 @@ function collectDisplayEdges(geometry, angleDegrees = 80, tolerance = DEFAULT_TO
   const result = [];
   for (const edges of edgeMap.values()) {
     const [edge] = edges;
-    const isCrease = edges.some((current, index) =>
+    const isBoundary = edges.length === 1;
+    const isCrease = isBoundary || edges.some((current, index) =>
       edges.slice(index + 1).some((other) => current.normal.dot(other.normal) < threshold),
     );
     if (isCrease) {

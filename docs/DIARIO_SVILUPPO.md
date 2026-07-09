@@ -193,10 +193,11 @@ producono mesh pesanti.
 
 Per non appesantire la vista, `updateEdges()` crea le linee dei bordi solo sotto
 `MAX_EDGE_TRIANGLES`; sulle mesh molto dense il modello resta visibile senza la
-geometria extra delle linee. `createDisplayEdgesGeometry()` usa `MODEL_EDGE_ANGLE`
-e filtra anche edge lunghi, orizzontali e interni alle facce piane: dopo una CSG
-le superfici incise possono contenere triangoli tecnici non condivisi, e non
-devono apparire come bordi reali.
+geometria extra delle linee. `createDisplayEdgesGeometry()` usa
+`MODEL_EDGE_ANGLE`: mostra crease reali e bordi aperti, ma nasconde le diagonali
+di triangolazione coplanari. Questo e' importante per i piani 2D: un cerchio
+applicato su una faccia STL deve mantenere il contorno esterno selezionabile,
+senza mostrare tutti i raggi interni della triangolazione.
 
 ## Import STL
 
@@ -492,6 +493,12 @@ regione selezionata: sui solidi chiusi continua a spostare i vertici condivisi,
 mentre su una faccia isolata duplica la faccia di partenza e crea le pareti
 laterali lungo il movimento. In questo modo una faccia piatta puo' diventare un
 prisma senza passare da una booleana.
+Quando il piano e' coplanare con una faccia STL gia' esistente, `selectAt()`
+preferisce la regione con area minore tra gli hit alla stessa profondita: cosi'
+un cerchio o rettangolo disegnato sopra una piastra viene selezionato al posto
+dell'intera faccia grande. Il contorno resta visibile perche i bordi aperti sono
+inclusi nella geometria display, mentre le diagonali/raggi interni coplanari
+restano nascosti.
 
 Per il testo in rilievo sul modello si usa invece `combineGeometries()`:
 concatena i vertici del modello e della scritta senza booleana. E' molto piu'
