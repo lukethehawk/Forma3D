@@ -20,10 +20,13 @@ import {
   collectDisplaySnapPoints,
   combineGeometries,
   createDisplayEdgesGeometry,
+  createPushPullRegionGeometry,
   createRegionGeometry,
   deleteTrianglesFromGeometry,
   findCoplanarRegion,
   pushPullGeometry,
+  regionHasCoplanarSupport,
+  regionHasOpenBoundary,
   repairMeshGeometry,
   triangleCount,
 } from './geometry.js';

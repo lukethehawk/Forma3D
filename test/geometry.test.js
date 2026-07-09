@@ -3,11 +3,14 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {
   combineGeometries,
+  createPushPullRegionGeometry,
   createDisplayEdgesGeometry,
   collectDisplaySnapPoints,
   deleteTrianglesFromGeometry,
   findCoplanarRegion,
   pushPullGeometry,
+  regionHasCoplanarSupport,
+  regionHasOpenBoundary,
   repairMeshGeometry,
   triangleCount,
 } from '../src/geometry.js';
@@ -61,6 +64,43 @@ test('pushPullGeometry extrudes a standalone flat face into a volume', () => {
   assert.equal(Math.round(result.boundingBox.max.z), 6);
   assert.ok(triangleCount(result) > triangleCount(geometry));
   assert.equal(result.getAttribute('normal').count, result.getAttribute('position').count);
+});
+
+test('regionHasCoplanarSupport recognizes a 2D profile placed on a solid face', () => {
+  const box = new THREE.BoxGeometry(20, 20, 6).toNonIndexed();
+  const plane = new THREE.BufferGeometry();
+  plane.setAttribute('position', new THREE.Float32BufferAttribute([
+    -4, -4, 3,
+    4, -4, 3,
+    4, 4, 3,
+    -4, -4, 3,
+    4, 4, 3,
+    -4, 4, 3,
+  ], 3));
+  const boxTriangles = triangleCount(box);
+  const geometry = combineGeometries([box, plane]);
+  const region = findCoplanarRegion(geometry, boxTriangles);
+  assert.equal(regionHasOpenBoundary(geometry, region), true);
+  assert.equal(regionHasCoplanarSupport(geometry, region), true);
+  plane.dispose();
+});
+
+test('createPushPullRegionGeometry creates a closed cutter for a supported profile', () => {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute([
+    -5, -5, 0,
+    5, -5, 0,
+    5, 5, 0,
+    -5, -5, 0,
+    5, 5, 0,
+    -5, 5, 0,
+  ], 3));
+  const region = findCoplanarRegion(geometry, 0);
+  const cutter = createPushPullRegionGeometry(geometry, region, -4);
+  cutter.computeBoundingBox();
+  assert.equal(Math.round(cutter.boundingBox.min.z), -4);
+  assert.equal(Math.round(cutter.boundingBox.max.z), 0);
+  assert.equal(cutter.getAttribute('normal').count, cutter.getAttribute('position').count);
 });
 
 test('deleteTrianglesFromGeometry removes a selected planar region', () => {

@@ -623,11 +623,63 @@ function applyPushPull(distance) {
     setStatus('Inserisci una distanza diversa da zero.');
     return;
   }
+  if (
+    regionHasOpenBoundary(model.geometry, selected.region)
+    && regionHasCoplanarSupport(model.geometry, selected.region)
+  ) {
+    applySupportedProfilePushPull(distance);
+    return;
+  }
   snapshot();
   const geometry = pushPullGeometry(model.geometry, selected.region, distance);
   setModelGeometry(geometry, false, { preserveSketch: true });
   updateHistoryButtons();
   setStatus(`Spingi/Tira applicato: ${distance.toFixed(2)} mm.`);
+}
+
+function applySupportedProfilePushPull(distance) {
+  const overlap = Math.max(0.03, Math.abs(distance) * 0.002);
+  const sign = Math.sign(distance);
+  const sourceGeometry = deleteTrianglesFromGeometry(model.geometry, selected.region.triangles);
+  if (!sourceGeometry) {
+    const geometry = pushPullGeometry(model.geometry, selected.region, distance);
+    snapshot();
+    setModelGeometry(geometry, false, { preserveSketch: true });
+    updateHistoryButtons();
+    setStatus(`Spingi/Tira applicato: ${distance.toFixed(2)} mm.`);
+    return;
+  }
+
+  const toolGeometry = createPushPullRegionGeometry(
+    model.geometry,
+    selected.region,
+    distance + sign * overlap,
+  );
+  toolGeometry.translate(
+    selected.normal.x * -sign * overlap,
+    selected.normal.y * -sign * overlap,
+    selected.normal.z * -sign * overlap,
+  );
+
+  snapshot();
+  try {
+    const operation = distance > 0 ? 'add' : 'subtract';
+    const resultGeometry = booleanGeometry(sourceGeometry, toolGeometry, operation);
+    setModelGeometry(resultGeometry, false, { preserveSketch: true });
+    updateHistoryButtons();
+    setStatus(distance > 0
+      ? `Profilo tirato: ${distance.toFixed(2)} mm.`
+      : `Profilo spinto nel solido: ${distance.toFixed(2)} mm.`);
+  } catch (error) {
+    console.error(`Errore Spingi/Tira su profilo: ${error?.stack ?? error}`);
+    const previous = undoStack.pop();
+    if (previous) setModelGeometry(previous, false, { preserveSketch: true });
+    updateHistoryButtons();
+    setStatus('Non riesco ad applicare Spingi/Tira su questo profilo: prova una distanza diversa o ripara la mesh.');
+  } finally {
+    sourceGeometry.dispose();
+    toolGeometry.dispose();
+  }
 }
 
 function applyHole() {

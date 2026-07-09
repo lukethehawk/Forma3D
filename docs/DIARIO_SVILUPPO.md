@@ -322,8 +322,12 @@ da molti triangoli.
 
 ## Spingi/Tira
 
-`applyPushPull(distance)` richiede una selezione. Usa
-`pushPullGeometry(model.geometry, selected.region, distance)`.
+`applyPushPull(distance)` richiede una selezione. Il flusso ha due casi:
+
+- facce STL normali o piani 2D isolati: usa
+  `pushPullGeometry(model.geometry, selected.region, distance)`;
+- profili 2D appoggiati su una faccia STL coplanare: crea un volume cutter con
+  `createPushPullRegionGeometry()` e applica una booleana locale.
 
 `pushPullGeometry()` muove tutti i vertici appartenenti alla regione selezionata
 lungo la normale della regione. E' una modifica mesh diretta, non una booleana
@@ -336,6 +340,15 @@ volume. In quel caso il numero di vertici cambia: l'attributo `normal` clonato
 dalla geometria originale deve essere eliminato prima di `computeVertexNormals()`,
 altrimenti WebGL riceve attributi `position` e `normal` di lunghezze diverse e
 il modello puo' apparire come sola wireframe/contorni.
+
+Per i profili disegnati sopra una faccia esistente, `regionHasCoplanarSupport()`
+controlla se sotto il piano selezionato esiste una superficie STL complanare. In
+quel caso `Spingi/Tira` elimina prima la faccia 2D di costruzione, poi usa:
+
+- distanza positiva: booleana `ADDITION`, con un piccolo overlap dentro il
+  solido per evitare facce complanari instabili;
+- distanza negativa: booleana `SUBTRACTION`, con un piccolo overlap verso
+  l'esterno per creare un taglio reale nel solido.
 
 ## Cancellazione con Canc
 

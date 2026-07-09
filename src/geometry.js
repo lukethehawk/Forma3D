@@ -485,6 +485,99 @@ export function pushPullGeometry(geometry, region, distance) {
   return result;
 }
 
+export function createPushPullRegionGeometry(geometry, region, distance) {
+  const positions = [];
+  const sourcePosition = geometry.getAttribute('position');
+  const offset = region.normal.clone().multiplyScalar(distance);
+  const point = new THREE.Vector3();
+  const sourcePoints = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
+  const movedPoints = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
+  const reverseCaps = distance < 0;
+
+  const addTrianglePoints = (a, b, c) => {
+    positions.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
+  };
+
+  for (const triangle of region.triangles) {
+    for (let corner = 0; corner < 3; corner += 1) {
+      point.fromBufferAttribute(sourcePosition, triangle * 3 + corner);
+      sourcePoints[corner].copy(point);
+      movedPoints[corner].copy(point).add(offset);
+    }
+
+    if (reverseCaps) {
+      addTrianglePoints(sourcePoints[0], sourcePoints[1], sourcePoints[2]);
+      addTrianglePoints(movedPoints[2], movedPoints[1], movedPoints[0]);
+    } else {
+      addTrianglePoints(movedPoints[0], movedPoints[1], movedPoints[2]);
+      addTrianglePoints(sourcePoints[2], sourcePoints[1], sourcePoints[0]);
+    }
+  }
+
+  for (const edge of collectOpenRegionBoundaryEdges(geometry, region)) {
+    const movedStart = edge.start.clone().add(offset);
+    const movedEnd = edge.end.clone().add(offset);
+    positions.push(
+      edge.start.x, edge.start.y, edge.start.z,
+      edge.end.x, edge.end.y, edge.end.z,
+      movedEnd.x, movedEnd.y, movedEnd.z,
+      edge.start.x, edge.start.y, edge.start.z,
+      movedEnd.x, movedEnd.y, movedEnd.z,
+      movedStart.x, movedStart.y, movedStart.z,
+    );
+  }
+
+  const result = new THREE.BufferGeometry();
+  result.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  result.computeVertexNormals();
+  result.computeBoundingBox();
+  result.computeBoundingSphere();
+  return result;
+}
+
+export function regionHasOpenBoundary(geometry, region) {
+  return collectOpenRegionBoundaryEdges(geometry, region).length > 0;
+}
+
+export function regionHasCoplanarSupport(geometry, region, tolerance = DEFAULT_TOLERANCE) {
+  const position = geometry.getAttribute('position');
+  if (!position) return false;
+
+  const selected = new Set(region.triangles);
+  const selectedBox = new THREE.Box3();
+  const point = new THREE.Vector3();
+  for (const triangle of region.triangles) {
+    for (let corner = 0; corner < 3; corner += 1) {
+      selectedBox.expandByPoint(vertexAt(geometry, triangle, corner, point));
+    }
+  }
+  selectedBox.expandByScalar(Math.max(tolerance * 100, 0.01));
+
+  const seedPoint = vertexAt(geometry, region.triangles[0], 0, new THREE.Vector3());
+  const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(region.normal, seedPoint);
+  const triangleTotal = triangleCount(geometry);
+
+  for (let triangle = 0; triangle < triangleTotal; triangle += 1) {
+    if (selected.has(triangle)) continue;
+    const normal = triangleNormal(geometry, triangle);
+    if (normal.dot(region.normal) < 0.995) continue;
+
+    const triangleBox = new THREE.Box3();
+    let coplanar = true;
+    for (let corner = 0; corner < 3; corner += 1) {
+      const vertex = vertexAt(geometry, triangle, corner, point);
+      if (Math.abs(plane.distanceToPoint(vertex)) > Math.max(tolerance * 100, 0.01)) {
+        coplanar = false;
+        break;
+      }
+      triangleBox.expandByPoint(vertex);
+    }
+    if (coplanar && triangleBox.intersectsBox(selectedBox)) return true;
+  }
+
+  return false;
+}
+
 function collectOpenRegionBoundaryEdges(geometry, region) {
   const position = geometry.getAttribute('position');
   const selectedTriangles = new Set(region.triangles);
