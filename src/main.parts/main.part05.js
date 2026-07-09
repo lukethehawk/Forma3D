@@ -106,10 +106,7 @@ ui.languageSelect.addEventListener('change', () => {
   applyLanguage(ui.languageSelect.value);
 });
 ui.selectionMode.addEventListener('change', () => {
-  selectionMode = ui.selectionMode.value === 'object' ? 'object' : 'face';
-  localStorage.setItem('forma3d-selection-mode', selectionMode);
-  clearSelection();
-  updateInspector();
+  setSelectionMode(ui.selectionMode.value);
   setStatus(t(selectionMode === 'object'
     ? 'Modalita oggetto: clicca un corpo per selezionarlo.'
     : 'Modalita faccia: clicca una superficie del modello.'));
@@ -398,8 +395,21 @@ canvas.addEventListener('pointerup', (event) => {
     else if (activeTool === 'cut') cutAt(event.clientX, event.clientY);
     else if (activeTool === 'text') textAt(event.clientX, event.clientY);
     else if (activeTool === 'line') sketchAt(event.clientX, event.clientY);
+    else if (activeTool === 'select') {
+      setSelectionMode('face', { clear: false, refresh: false });
+      selectAt(event.clientX, event.clientY, 'face');
+    } else if (activeTool === 'pushpull') {
+      setSelectionMode('face', { clear: false, refresh: false });
+      selectAt(event.clientX, event.clientY, 'face');
+    }
     else selectAt(event.clientX, event.clientY);
   }
+});
+canvas.addEventListener('dblclick', (event) => {
+  if (appBusy || !['select', 'transform'].includes(activeTool)) return;
+  event.preventDefault();
+  setSelectionMode('object', { clear: false, refresh: false });
+  selectObjectAt(event.clientX, event.clientY);
 });
 canvas.addEventListener('pointermove', (event) => {
   if (appBusy) return;

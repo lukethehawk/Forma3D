@@ -264,6 +264,19 @@ function updateHistoryButtons() {
   ui.redo.disabled = redoStack.length === 0;
 }
 
+function setSelectionMode(mode, options = {}) {
+  const {
+    clear = true,
+    persist = true,
+    refresh = true,
+  } = options;
+  selectionMode = mode === 'object' ? 'object' : 'face';
+  if (persist) localStorage.setItem('forma3d-selection-mode', selectionMode);
+  ui.selectionMode.value = selectionMode;
+  if (clear) clearSelection();
+  if (refresh) updateInspector();
+}
+
 function clearCurrentModel(message = 'Modello rimosso. Apri un STL o crea una nuova figura.') {
   clearTransientOverlays();
   clearSelection();
@@ -496,6 +509,11 @@ function transformCurrentModel() {
     return;
   }
 
+  if (!selected || selected.type !== 'object') {
+    setStatus('Seleziona un oggetto con doppio click prima di trasformarlo.');
+    return;
+  }
+
   const transformed = transformedGeometryFromInputs();
   if (!transformed) {
     const scale = parseDecimal(ui.transformScale.value, 1);
@@ -688,8 +706,8 @@ function updateInspector() {
     },
     transform: {
       title: 'Trasforma',
-      description: 'Sposta, ruota o scala l\'intero modello applicando la trasformazione ai vertici STL.',
-      hint: 'Trasforma: inserisci spostamento, rotazione o scala e applica.',
+      description: 'Sposta, ruota o scala l\'oggetto selezionato applicando la trasformazione ai vertici STL.',
+      hint: 'Trasforma: doppio click su un corpo, poi inserisci spostamento, rotazione o scala.',
     },
     orbit: {
       title: 'Orbita',
@@ -754,7 +772,14 @@ function setTool(tool) {
   clearSnapIndicator();
   activeTool = tool;
   if (tool === 'measure') clearSelection();
-  if (tool === 'transform' && selected?.type !== 'object') clearSelection();
+  if (tool === 'transform') {
+    if (selected?.type === 'face' && selected.region?.triangles?.length) {
+      setSelectionMode('object', { clear: false, refresh: false });
+      selectObjectComponent(selected.region.triangles[0], selected.point);
+    } else {
+      setSelectionMode('object', { clear: false, refresh: false });
+    }
+  }
   if (tool === 'hole') {
     clearSelection();
     clearHoleCreate();
@@ -835,7 +860,7 @@ function setTool(tool) {
     text: 'Testo: clicca il punto basso sinistro, poi scrivi e regola profondita e font.',
     line: 'Linea: crea guide indipendenti. Gli altri strumenti si agganciano a estremi, midpoint e segmenti.',
     measure: 'Misura: clicca il primo punto.',
-    transform: 'Trasforma: inserisci valori e applica al modello.',
+    transform: 'Trasforma: seleziona un corpo e applica i valori all\'oggetto.',
     orbit: 'Orbita: trascina per ruotare la vista.',
     pan: 'Panoramica: trascina per spostare la vista.',
   };
@@ -1085,6 +1110,85 @@ function selectionBoxFromTriangles(geometry, triangles) {
   return box.isEmpty() ? null : box;
 }
 
+function createSelectionBoxOverlay(box) {
+  const group = new THREE.Group();
+  const size = box.getSize(new THREE.Vector3());
+  const lineGeometry = new THREE.BufferGeometry();
+  const min = box.min;
+  const max = box.max;
+  const corners = [
+    new THREE.Vector3(min.x, min.y, min.z),
+    new THREE.Vector3(max.x, min.y, min.z),
+    new THREE.Vector3(max.x, max.y, min.z),
+    new THREE.Vector3(min.x, max.y, min.z),
+    new THREE.Vector3(min.x, min.y, max.z),
+    new THREE.Vector3(max.x, min.y, max.z),
+    new THREE.Vector3(max.x, max.y, max.z),
+    new THREE.Vector3(min.x, max.y, max.z),
+  ];
+  const edgeIndexes = [
+    [0, 1], [1, 2], [2, 3], [3, 0],
+    [4, 5], [5, 6], [6, 7], [7, 4],
+    [0, 4], [1, 5], [2, 6], [3, 7],
+  ];
+  const positions = [];
+  for (const [start, end] of edgeIndexes) {
+    positions.push(
+      corners[start].x, corners[start].y, corners[start].z,
+      corners[end].x, corners[end].y, corners[end].z,
+    );
+  }
+  lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  const lines = new THREE.LineSegments(lineGeometry, selectionLineMaterial);
+  lines.renderOrder = 20;
+  group.add(lines);
+
+  const cornerRadius = Math.max(size.length() * 0.006, 0.45);
+  const edgeRadius = Math.max(size.length() * 0.0025, 0.18);
+  for (const [start, end] of edgeIndexes) {
+    const from = corners[start];
+    const to = corners[end];
+    const direction = new THREE.Vector3().subVectors(to, from);
+    const length = direction.length();
+    if (length <= 1e-6) continue;
+    const edge = new THREE.Mesh(
+      new THREE.CylinderGeometry(edgeRadius, edgeRadius, length, 8),
+      selectionCornerMaterial,
+    );
+    edge.position.copy(from).add(to).multiplyScalar(0.5);
+    edge.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize());
+    edge.renderOrder = 21;
+    group.add(edge);
+  }
+
+  for (const corner of corners) {
+    const marker = new THREE.Mesh(
+      new THREE.SphereGeometry(cornerRadius, 12, 8),
+      selectionCornerMaterial,
+    );
+    marker.position.copy(corner);
+    marker.renderOrder = 22;
+    group.add(marker);
+  }
+
+  return group;
+}
+
+function createFaceSelectionOverlay(geometry, triangles) {
+  const group = new THREE.Group();
+  const surface = new THREE.Mesh(createRegionGeometry(geometry, triangles, 0.055), highlightMaterial);
+  surface.renderOrder = 20;
+  group.add(surface);
+
+  const wireSource = createRegionGeometry(geometry, triangles, 0.07);
+  const wireGeometry = new THREE.WireframeGeometry(wireSource);
+  wireSource.dispose();
+  const wire = new THREE.LineSegments(wireGeometry, selectionLineMaterial);
+  wire.renderOrder = 21;
+  group.add(wire);
+  return group;
+}
+
 function regionArea(geometry, region) {
   return region.triangles.reduce((sum, triangle) => sum + triangleAreaFromGeometry(geometry, triangle), 0);
 }
@@ -1113,28 +1217,23 @@ function pickSelectableRegion(clientX, clientY) {
   return best;
 }
 
-function selectObjectAt(clientX, clientY) {
-  const hit = raycastModel(clientX, clientY);
-  if (!hit) {
-    clearSelection();
-    return;
-  }
-
-  const component = findConnectedComponent(model.geometry, hit.faceIndex);
+function selectObjectComponent(seedTriangle, point) {
+  if (!model) return false;
+  const component = findConnectedComponent(model.geometry, seedTriangle);
   const box = selectionBoxFromTriangles(model.geometry, component.triangles);
   if (!component.triangles.length || !box) {
     clearSelection();
-    return;
+    return false;
   }
 
   clearSelection();
   selected = {
     type: 'object',
-    point: hit.point.clone(),
+    point: point?.clone?.() ?? box.getCenter(new THREE.Vector3()),
     triangles: component.triangles,
   };
 
-  highlight = new THREE.Box3Helper(box, 0x2c92d5);
+  highlight = createSelectionBoxOverlay(box);
   highlight.renderOrder = 3;
   addTransientOverlay(highlight, 'selection');
   ui.selectionLabel.textContent = t('Oggetto selezionato');
@@ -1142,10 +1241,47 @@ function selectObjectAt(clientX, clientY) {
   ui.measureValue.value = `${component.triangles.length} ${t('facce')}`;
   ui.inspector.classList.add('open');
   setStatus(t('Oggetto selezionato'));
+  return true;
 }
 
-function selectAt(clientX, clientY) {
-  if (selectionMode === 'object') {
+function selectObjectAt(clientX, clientY) {
+  const hit = raycastModel(clientX, clientY);
+  if (!hit) {
+    clearSelection();
+    return;
+  }
+
+  selectObjectComponent(hit.faceIndex, hit.point);
+}
+
+function selectFaceRegion(region, point, options = {}) {
+  const {
+    status = activeTool === 'hole' ? 'Punto del foro selezionato.' : 'Superficie selezionata.',
+    detail = activeTool === 'hole'
+      ? 'Il punto blu indica il centro del foro.'
+      : 'La zona blu verra spostata lungo la sua normale.',
+  } = options;
+  clearSelection();
+  selected = {
+    type: 'face',
+    point: point?.clone?.() ?? new THREE.Vector3(),
+    normal: region.normal.clone(),
+    region,
+  };
+
+  highlight = createFaceSelectionOverlay(model.geometry, region.triangles);
+  addTransientOverlay(highlight, 'selection');
+  ui.selectionLabel.textContent = currentLanguage === 'en'
+    ? `Surface selected (${region.triangles.length} triangles)`
+    : `Superficie selezionata (${region.triangles.length} triangoli)`;
+  ui.selectionDetail.textContent = t(detail);
+  ui.measureValue.value = `${region.triangles.length} ${t('facce')}`;
+  ui.inspector.classList.add('open');
+  setStatus(t(status));
+}
+
+function selectAt(clientX, clientY, mode = selectionMode) {
+  if (mode === 'object') {
     selectObjectAt(clientX, clientY);
     return;
   }
@@ -1157,30 +1293,7 @@ function selectAt(clientX, clientY) {
   }
 
   const { hit, region } = picked;
-  clearSelection();
-  selected = {
-    type: 'face',
-    point: hit.point.clone(),
-    normal: region.normal.clone(),
-    region,
-  };
-
-  highlight = new THREE.Mesh(
-    createRegionGeometry(model.geometry, region.triangles),
-    highlightMaterial,
-  );
-  highlight.renderOrder = 3;
-  addTransientOverlay(highlight, 'selection');
-  ui.selectionLabel.textContent = currentLanguage === 'en'
-    ? `Surface selected (${region.triangles.length} triangles)`
-    : `Superficie selezionata (${region.triangles.length} triangoli)`;
-  ui.selectionDetail.textContent =
-    activeTool === 'hole'
-      ? t('Il punto blu indica il centro del foro.')
-      : t('La zona blu verra spostata lungo la sua normale.');
-  ui.measureValue.value = `${region.triangles.length} ${t('facce')}`;
-  ui.inspector.classList.add('open');
-  setStatus(t(activeTool === 'hole' ? 'Punto del foro selezionato.' : 'Superficie selezionata.'));
+  selectFaceRegion(region, hit.point);
 }
 
 function createMeasureLine(start, end, color, dashed = false) {

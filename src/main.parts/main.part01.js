@@ -100,13 +100,28 @@ const modelMaterial = new THREE.MeshStandardMaterial({
 });
 const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x36434a, opacity: 0.5, transparent: true });
 const highlightMaterial = new THREE.MeshBasicMaterial({
-  color: 0x2c92d5,
+  color: 0x008cff,
   transparent: true,
-  opacity: 0.5,
+  opacity: 0.72,
   side: THREE.DoubleSide,
   depthWrite: false,
+  depthTest: false,
 });
 highlightMaterial.userData.shared = true;
+const selectionLineMaterial = new THREE.LineBasicMaterial({
+  color: 0x006dff,
+  transparent: true,
+  opacity: 1,
+  depthTest: false,
+  depthWrite: false,
+});
+selectionLineMaterial.userData.shared = true;
+const selectionCornerMaterial = new THREE.MeshBasicMaterial({
+  color: 0x006dff,
+  depthTest: false,
+  depthWrite: false,
+});
+selectionCornerMaterial.userData.shared = true;
 const measureColors = {
   total: 0xe46f2b,
   x: 0xcc3737,
@@ -503,6 +518,12 @@ const staticTranslations = {
     'Apri un file STL': 'Open an STL file',
     'oppure prova subito sul blocco di esempio': 'or start with the example block',
     'Clic sinistro: seleziona · Rotellina premuta: orbita · Rotellina: zoom · Tasto destro: panoramica': 'Left click: select · Middle drag: orbit · Wheel: zoom · Right button: pan',
+    'Guida rapida': 'Quick guide',
+    'Comandi base': 'Basic commands',
+    'Click: seleziona una faccia.': 'Click: select a face.',
+    'Doppio click: seleziona il corpo.': 'Double-click: select the body.',
+    'Canc: elimina la selezione.': 'Delete: removes the selection.',
+    'Rotellina premuta: orbita. Tasto destro: panoramica.': 'Middle drag: orbit. Right button: pan.',
     ALTO: 'TOP',
     FRONTE: 'FRONT',
     STRUMENTO: 'TOOL',
@@ -683,6 +704,11 @@ const staticTranslations = {
     'Piani: clicca centro e forma. Poi usa Spingi/Tira per dare volume.': 'Planes: click center and shape. Then use Push/Pull to add volume.',
     'Piani: clicca il centro della faccia piatta.': 'Planes: click the center of the flat face.',
     'Piano impostato. Scegli forma, dimensioni e asse, poi applica.': 'Plane set. Choose shape, dimensions and axis, then apply.',
+    'Imposta prima centro, forma e dimensioni del piano.': 'Set the plane center, shape and dimensions first.',
+    'Applicazione piano in corso...': 'Applying plane...',
+    'Piano applicato al modello.': 'Plane applied to the model.',
+    'Piano applicato e selezionato. Usa Spingi/Tira per dargli volume.': 'Plane applied and selected. Use Push/Pull to give it volume.',
+    'Faccia piana selezionata. Puoi usare subito Spingi/Tira.': 'Flat face selected. You can use Push/Pull immediately.',
     'Figura da sottrarre': 'Shape to subtract',
     'Scegli forma e clicca dove vuoi togliere materiale.': 'Choose a shape and click where you want to remove material.',
     'Anteprima arancione: volume che verra rimosso dallo STL.': 'Orange preview: volume that will be removed from the STL.',
@@ -739,6 +765,9 @@ const staticTranslations = {
     'Modello intero': 'Whole model',
     'Trasforma la mesh corrente': 'Transform the current mesh',
     'Le modifiche vengono applicate ai vertici, quindi restano compatibili con STL e booleane successive.': 'Changes are applied to vertices, so they remain compatible with STL and later booleans.',
+    'Corpo selezionato': 'Selected body',
+    'Trasforma il corpo corrente': 'Transform the current body',
+    'Doppio click su un corpo, poi sposta, ruota o scala solo quella parte.': 'Double-click a body, then move, rotate or scale only that part.',
     'Sposta X': 'Move X',
     'Sposta Y': 'Move Y',
     'Sposta Z': 'Move Z',
@@ -753,6 +782,10 @@ const staticTranslations = {
     "Sposta, ruota o scala l'intero modello applicando la trasformazione ai vertici STL.": 'Move, rotate or scale the whole model by applying the transform to STL vertices.',
     'Trasforma: inserisci spostamento, rotazione o scala e applica.': 'Transform: enter translation, rotation or scale and apply.',
     'Trasforma: inserisci valori e applica al modello.': 'Transform: enter values and apply them to the model.',
+    "Sposta, ruota o scala l'oggetto selezionato applicando la trasformazione ai vertici STL.": 'Move, rotate or scale the selected object by applying the transform to STL vertices.',
+    'Trasforma: doppio click su un corpo, poi inserisci spostamento, rotazione o scala.': 'Transform: double-click a body, then enter translation, rotation or scale.',
+    "Trasforma: seleziona un corpo e applica i valori all'oggetto.": 'Transform: select a body and apply the values to the object.',
+    'Seleziona un oggetto con doppio click prima di trasformarlo.': 'Double-click an object before transforming it.',
     'Misure': 'Measurements',
     'Distanza tra i punti': 'Distance between points',
     'Nuova misura': 'New measurement',
@@ -807,6 +840,8 @@ function translateStaticText(language) {
     '.history-actions button',
     '#selection-info span',
     '#selection-info strong',
+    '.options-tooltip strong',
+    '.options-tooltip span',
     '#status',
   ].join(','));
   elements.forEach((element) => {

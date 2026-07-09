@@ -126,6 +126,53 @@ button {
   background: white;
 }
 
+.options-help {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.help-dot {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #9fb5c3;
+  border-radius: 50%;
+  color: var(--blue-dark);
+  background: #eef7fb;
+  cursor: help;
+  font-weight: 800;
+}
+
+.options-tooltip {
+  width: 250px;
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 8px);
+  right: 0;
+  display: none;
+  gap: 5px;
+  padding: 10px;
+  border: 1px solid #b8c5cb;
+  border-radius: 7px;
+  color: #2d373c;
+  background: #ffffff;
+  box-shadow: 0 10px 26px rgb(32 42 47 / 20%);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.options-tooltip strong,
+.options-tooltip span {
+  display: block;
+}
+
+.options-help:hover .options-tooltip,
+.options-help:focus-within .options-tooltip {
+  display: grid;
+}
+
 .top-menu-panel .top-button {
   width: 100%;
   text-align: left;

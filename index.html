@@ -32,6 +32,16 @@
               <option value="en">🇬🇧 English</option>
               <option value="it">🇮🇹 Italiano</option>
             </select>
+            <div class="options-help">
+              <button class="help-dot" type="button" aria-label="Guida rapida">?</button>
+              <div class="options-tooltip" role="tooltip">
+                <strong>Comandi base</strong>
+                <span>Click: seleziona una faccia.</span>
+                <span>Doppio click: seleziona il corpo.</span>
+                <span>Canc: elimina la selezione.</span>
+                <span>Rotellina premuta: orbita. Tasto destro: panoramica.</span>
+              </div>
+            </div>
             <button id="repair-model" class="top-button" type="button">
               <span class="button-icon">R</span> Ripara mesh
             </button>
@@ -785,9 +795,9 @@
 
         <form id="transform-form" class="tool-form primitive-form" hidden>
           <div class="hole-readout">
-            <span>Modello intero</span>
-            <strong>Trasforma la mesh corrente</strong>
-            <small>Le modifiche vengono applicate ai vertici, quindi restano compatibili con STL e booleane successive.</small>
+            <span>Corpo selezionato</span>
+            <strong>Trasforma il corpo corrente</strong>
+            <small>Doppio click su un corpo, poi sposta, ruota o scala solo quella parte.</small>
           </div>
           <div class="offset-grid">
             <label for="transform-x" class="axis-x">Sposta X</label>

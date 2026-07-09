@@ -634,10 +634,22 @@ function applyPlane() {
     setStatus('Imposta prima centro, forma e dimensioni del piano.');
     return;
   }
+  const firstPlaneTriangle = model ? triangleCount(model.geometry) : 0;
+  const selectedPoint = planePlacement?.basePoint?.clone?.() ?? new THREE.Vector3();
   const applied = appendGeometryToModel(geometry, 'Piano applicato al modello.', 'Applicazione piano in corso...');
   if (applied) {
-    clearPlanePlacement();
+    setSelectionMode('face', { clear: false, refresh: false });
     setTool('select');
+    try {
+      const region = findCoplanarRegion(model.geometry, firstPlaneTriangle);
+      selectFaceRegion(region, selectedPoint, {
+        status: 'Piano applicato e selezionato. Usa Spingi/Tira per dargli volume.',
+        detail: 'Faccia piana selezionata. Puoi usare subito Spingi/Tira.',
+      });
+    } catch (error) {
+      console.error(`Errore selezione piano: ${error?.stack ?? error}`);
+      setStatus('Piano applicato al modello.');
+    }
   }
 }
 
