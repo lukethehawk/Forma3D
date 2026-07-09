@@ -615,10 +615,14 @@ function fitView(direction = new THREE.Vector3(1.15, -1.45, 1)) {
   const box = new THREE.Box3().setFromObject(model);
   const size = box.getSize(new THREE.Vector3());
   const center = box.getCenter(new THREE.Vector3());
-  const radius = Math.max(size.length() * 0.75, 20);
-  camera.position.copy(center).add(direction.clone().normalize().multiplyScalar(radius));
-  camera.near = Math.max(radius / 1000, 0.01);
-  camera.far = radius * 100;
+  const radius = Math.max(size.length() * 0.5, 1);
+  const verticalFov = THREE.MathUtils.degToRad(camera.fov);
+  const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * camera.aspect);
+  const fittingFov = Math.min(verticalFov, horizontalFov);
+  const distance = Math.max((radius / Math.sin(fittingFov / 2)) * 1.85, 70);
+  camera.position.copy(center).add(direction.clone().normalize().multiplyScalar(distance));
+  camera.near = Math.max(distance / 1000, 0.01);
+  camera.far = Math.max(distance * 100, radius * 20);
   camera.updateProjectionMatrix();
   controls.target.copy(center);
   controls.update();
