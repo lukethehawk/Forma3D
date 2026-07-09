@@ -216,6 +216,30 @@ document.querySelector('#reset-pyramid').addEventListener('click', () => {
   setStatus('Clicca il centro di appoggio della piramide.');
 });
 [
+  ui.gearTeeth,
+  ui.gearModule,
+  ui.gearWidth,
+  ui.gearBore,
+  ui.gearHubDiameter,
+  ui.gearHubWidth,
+  ui.gearBacklash,
+  ui.gearQuality,
+  ui.gearAxis,
+  ui.gearOperation,
+  ...ui.gearOffsetInputs,
+].forEach((input) => {
+  input.addEventListener('input', drawGearPreview);
+  input.addEventListener('change', drawGearPreview);
+});
+ui.applyGear.addEventListener('click', (event) => {
+  event.preventDefault();
+  applyGear();
+});
+document.querySelector('#reset-gear').addEventListener('click', () => {
+  clearGearPlacement();
+  setStatus("Clicca il centro di appoggio dell'ingranaggio.");
+});
+[
   ui.planeShape,
   ui.planeAxis,
   ui.planeWidth,
@@ -357,6 +381,7 @@ canvas.addEventListener('pointerup', (event) => {
     else if (activeTool === 'cylinder') cylinderAt(event.clientX, event.clientY);
     else if (activeTool === 'cone') coneAt(event.clientX, event.clientY);
     else if (activeTool === 'pyramid') pyramidAt(event.clientX, event.clientY);
+    else if (activeTool === 'gear') gearAt(event.clientX, event.clientY);
     else if (activeTool === 'plane') planeAt(event.clientX, event.clientY);
     else if (activeTool === 'cut') cutAt(event.clientX, event.clientY);
     else if (activeTool === 'text') textAt(event.clientX, event.clientY);
@@ -400,6 +425,7 @@ window.addEventListener('keydown', (event) => {
     c: 'cylinder',
     v: 'cone',
     i: 'pyramid',
+    k: 'gear',
     n: 'plane',
     t: 'cut',
     a: 'text',

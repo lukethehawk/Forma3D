@@ -35,6 +35,10 @@ repository verificare che Pages usi **GitHub Actions** come sorgente di deploy.
 - `F`: sposta un foro esistente
 - `B`: crea parallelepipedo
 - `C`: crea cilindro
+- `V`: crea cono
+- `I`: crea piramide
+- `K`: crea ingranaggio
+- `N`: crea piani 2D piatti
 - `T`: sottrai una figura di taglio da un solido/STL
 - `L`: traccia linee e crea sagome chiuse estrudibili
 - `A`: crea testo 3D con font, profondita, larghezza ed effetti
@@ -57,10 +61,16 @@ Per creare un foro, cliccare il centro sulla superficie. L'anteprima verde
 mostra il taglio; il pannello permette di modificare diametro, profondita e
 spostamenti sugli assi prima di confermare.
 
-Parallelepipedo, cilindro e sottrai usano un'anteprima agganciabile al modello:
+Parallelepipedo, cilindro, cono, piramide, ingranaggio e sottrai usano
+un'anteprima agganciabile al modello:
 cliccare una superficie o un punto utile, correggere posizione e dimensioni dal
 pannello, quindi applicare. Le operazioni possono sommare o sottrarre geometrie
 per esportare un unico STL modificato.
+
+Lo strumento ingranaggio crea una primitiva cilindrica a denti dritti con numero
+denti, modulo, spessore, foro centrale, mozzo opzionale, gioco semplificato e
+qualita del profilo. Il profilo e' un'approssimazione stampabile, non una
+involuta industriale parametrica.
 
 Lo strumento linea aiuta a disegnare sagome agganciandosi ai punti del modello e
 agli assi principali quando il puntatore si avvicina alla direzione X, Y o Z.

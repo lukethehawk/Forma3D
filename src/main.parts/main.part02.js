@@ -64,6 +64,21 @@ function clearPyramidPlacement() {
   ui.applyPyramid.disabled = true;
 }
 
+function clearGearPlacement() {
+  gearPlacement = null;
+  if (gearPreview) {
+    scene.remove(gearPreview);
+    disposeObject(gearPreview);
+    gearPreview = null;
+    requestRender();
+  }
+  ui.gearInfo.textContent = "Clicca dove vuoi appoggiare l'ingranaggio.";
+  ui.gearOffsetInputs.forEach((input) => {
+    input.value = '0';
+  });
+  ui.applyGear.disabled = true;
+}
+
 function clearPlanePlacement() {
   planePlacement = null;
   if (planePreview) {
@@ -187,6 +202,7 @@ function setModelGeometry(geometry, recordHistory = true, options = {}) {
   clearCylinderPlacement();
   clearConePlacement();
   clearPyramidPlacement();
+  clearGearPlacement();
   clearPlanePlacement();
   clearCutPlacement();
   clearTextPlacement();
@@ -251,6 +267,7 @@ function clearCurrentModel(message = 'Modello rimosso. Apri un STL o crea una nu
   clearCylinderPlacement();
   clearConePlacement();
   clearPyramidPlacement();
+  clearGearPlacement();
   clearPlanePlacement();
   clearCutPlacement();
   clearTextPlacement();
@@ -490,6 +507,11 @@ function clearActiveDeleteTarget() {
     setStatus('Piramide in anteprima cancellata.');
     return true;
   }
+  if (activeTool === 'gear' && gearPlacement) {
+    clearGearPlacement();
+    setStatus('Ingranaggio in anteprima cancellato.');
+    return true;
+  }
   if (activeTool === 'plane' && planePlacement) {
     clearPlanePlacement();
     setStatus('Piano in anteprima cancellato.');
@@ -589,6 +611,11 @@ function updateInspector() {
       description: 'Clicca il centro della base, regola base, altezza, asse e operazione booleana.',
       hint: 'Piramide: clicca il centro base, poi regola base X, base Y e altezza.',
     },
+    gear: {
+      title: 'Ingranaggio',
+      description: 'Crea un ingranaggio cilindrico a denti dritti con foro centrale e mozzo opzionale.',
+      hint: 'Ingranaggio: clicca il centro base, poi regola denti, modulo, spessore e foro.',
+    },
     plane: {
       title: 'Piani',
       description: 'Crea rettangoli, quadrati o tondi piatti da usare come facce di partenza.',
@@ -641,16 +668,17 @@ function updateInspector() {
   ui.cylinderForm.hidden = activeTool !== 'cylinder';
   ui.coneForm.hidden = activeTool !== 'cone';
   ui.pyramidForm.hidden = activeTool !== 'pyramid';
+  ui.gearForm.hidden = activeTool !== 'gear';
   ui.planeForm.hidden = activeTool !== 'plane';
   ui.cutForm.hidden = activeTool !== 'cut';
   ui.textForm.hidden = activeTool !== 'text';
   ui.sketchForm.hidden = activeTool !== 'line';
   ui.measurePanel.hidden = activeTool !== 'measure';
   ui.transformForm.hidden = activeTool !== 'transform';
-  document.querySelector('#selection-info').hidden = ['hole', 'measure', 'movehole', 'box', 'cylinder', 'cone', 'pyramid', 'plane', 'cut', 'text', 'line', 'transform'].includes(activeTool);
+  document.querySelector('#selection-info').hidden = ['hole', 'measure', 'movehole', 'box', 'cylinder', 'cone', 'pyramid', 'gear', 'plane', 'cut', 'text', 'line', 'transform'].includes(activeTool);
   ui.inspector.classList.toggle(
     'open',
-    ['pushpull', 'hole', 'movehole', 'box', 'cylinder', 'cone', 'pyramid', 'plane', 'cut', 'text', 'line', 'measure', 'transform'].includes(activeTool),
+    ['pushpull', 'hole', 'movehole', 'box', 'cylinder', 'cone', 'pyramid', 'gear', 'plane', 'cut', 'text', 'line', 'measure', 'transform'].includes(activeTool),
   );
   updateMeasureBoxMode();
 }
@@ -666,6 +694,7 @@ function setTool(tool) {
   if (activeTool === 'cylinder' && tool !== 'cylinder') clearCylinderPlacement();
   if (activeTool === 'cone' && tool !== 'cone') clearConePlacement();
   if (activeTool === 'pyramid' && tool !== 'pyramid') clearPyramidPlacement();
+  if (activeTool === 'gear' && tool !== 'gear') clearGearPlacement();
   if (activeTool === 'plane' && tool !== 'plane') clearPlanePlacement();
   if (activeTool === 'cut' && tool !== 'cut') clearCutPlacement();
   if (activeTool === 'text' && tool !== 'text') clearTextPlacement();
@@ -699,6 +728,10 @@ function setTool(tool) {
     clearSelection();
     clearPyramidPlacement();
   }
+  if (tool === 'gear') {
+    clearSelection();
+    clearGearPlacement();
+  }
   if (tool === 'plane') {
     clearSelection();
     clearPlanePlacement();
@@ -730,7 +763,7 @@ function setTool(tool) {
       ? 'grab'
         : tool === 'pan'
           ? 'move'
-          : ['hole', 'measure', 'movehole', 'box', 'cylinder', 'cone', 'pyramid', 'plane', 'cut', 'text', 'line'].includes(tool)
+          : ['hole', 'measure', 'movehole', 'box', 'cylinder', 'cone', 'pyramid', 'gear', 'plane', 'cut', 'text', 'line'].includes(tool)
             ? 'crosshair'
             : 'default';
   updateInspector();
@@ -743,6 +776,7 @@ function setTool(tool) {
     cylinder: 'Cilindro: clicca il centro di appoggio, poi regola diametro, altezza e asse.',
     cone: 'Cono: clicca il centro base, poi regola diametro, altezza e asse.',
     pyramid: 'Piramide: clicca il centro base, poi regola base, altezza e asse.',
+    gear: 'Ingranaggio: clicca il centro base, poi regola denti, modulo, spessore e foro.',
     plane: 'Piani: clicca il centro, scegli forma e dimensioni, poi applica la faccia piatta.',
     cut: 'Sottrai: scegli box o cilindro, clicca il punto e applica il taglio.',
     text: 'Testo: clicca il punto basso sinistro, poi scrivi e regola profondita e font.',
@@ -942,7 +976,7 @@ function drawSnapIndicator(pick) {
 }
 
 function updateSnapIndicator(clientX, clientY) {
-  if (!['hole', 'measure', 'movehole', 'box', 'cylinder', 'cone', 'pyramid', 'plane', 'cut', 'text', 'line'].includes(activeTool)) {
+  if (!['hole', 'measure', 'movehole', 'box', 'cylinder', 'cone', 'pyramid', 'gear', 'plane', 'cut', 'text', 'line'].includes(activeTool)) {
     clearSnapIndicator();
     return;
   }

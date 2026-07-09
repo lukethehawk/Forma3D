@@ -8,6 +8,7 @@ import {
   createConeGeometryFromBase,
   createCylinderGeometryFromBase,
   createExtrudedPolygonGeometry,
+  createGearGeometryFromBase,
   createPlaneGeometryFromBase,
   createPyramidGeometryFromBase,
   createPolygonFaceGeometry,
@@ -76,6 +77,50 @@ test('createPlaneGeometryFromBase creates a flat circle on the requested plane',
   assert.equal(Math.round(geometry.boundingBox.max.x), 2);
   assert.equal(Math.round(geometry.boundingBox.max.y - geometry.boundingBox.min.y), 8);
   assert.equal(Math.round(geometry.boundingBox.max.z - geometry.boundingBox.min.z), 8);
+});
+
+test('createGearGeometryFromBase creates a valid default gear', () => {
+  const geometry = createGearGeometryFromBase(new THREE.Vector3(0, 0, 2));
+  geometry.computeBoundingBox();
+  geometry.computeBoundingSphere();
+  assert.ok(geometry.getAttribute('position').count > 0);
+  assert.ok(geometry.boundingSphere.radius > 0);
+  assert.equal(Math.round(geometry.boundingBox.min.z), 2);
+  assert.equal(Math.round(geometry.boundingBox.max.z), 10);
+});
+
+test('createGearGeometryFromBase increases vertices with tooth count', () => {
+  const small = createGearGeometryFromBase(new THREE.Vector3(), { teeth: 12, quality: 'medium' });
+  const large = createGearGeometryFromBase(new THREE.Vector3(), { teeth: 36, quality: 'medium' });
+  assert.ok(large.getAttribute('position').count > small.getAttribute('position').count);
+});
+
+test('createGearGeometryFromBase clamps bore and keeps finite positions', () => {
+  const geometry = createGearGeometryFromBase(new THREE.Vector3(), {
+    boreDiameter: 100,
+    module: 1,
+    teeth: 8,
+    width: 2,
+  });
+  const position = geometry.getAttribute('position');
+  for (let index = 0; index < position.count; index += 1) {
+    assert.ok(Number.isFinite(position.getX(index)));
+    assert.ok(Number.isFinite(position.getY(index)));
+    assert.ok(Number.isFinite(position.getZ(index)));
+  }
+  geometry.computeBoundingBox();
+  assert.ok(geometry.boundingBox.max.z > geometry.boundingBox.min.z);
+});
+
+test('createGearGeometryFromBase supports oriented base extrusion', () => {
+  const geometry = createGearGeometryFromBase(
+    new THREE.Vector3(1, 2, 3),
+    { width: 6, teeth: 16, module: 1.5 },
+    new THREE.Vector3(1, 0, 0),
+  );
+  geometry.computeBoundingBox();
+  assert.equal(Math.round(geometry.boundingBox.min.x), 1);
+  assert.equal(Math.round(geometry.boundingBox.max.x), 7);
 });
 
 test('createExtrudedPolygonGeometry creates a solid from a closed 2D face', () => {

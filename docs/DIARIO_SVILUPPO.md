@@ -98,7 +98,8 @@ La toolbar verticale non espone piu' tutte le azioni in una lista piatta:
 
 - strumenti diretti: `Seleziona`, `Spingi/Tira`, `Misura`,
   `Trasforma`, navigazione vista;
-- menu `Solidi`: `Box`, `Cilindro`, `Cono`, `Piramide`, `Testo 3D`;
+- menu `Solidi`: `Box`, `Cilindro`, `Cono`, `Piramide`,
+  `Ingranaggio`, `Testo 3D`;
 - menu `Booleane`: `Sottrai`, `Foro`, `Sposta foro`.
 - menu `2D`: `Linea`, `Piani`.
 
@@ -161,7 +162,8 @@ Il controller principale usa variabili di stato semplici:
 - `snapPoints`: vertici raccolti dalla geometria corrente.
 - stati temporanei degli strumenti: `holeCreate`, `holeMove`, `boxPlacement`,
   `cylinderPlacement`, `conePlacement`, `pyramidPlacement`, `planePlacement`,
-  `cutPlacement`, `textPlacement`, `sketchPoints`, `measurementStart`.
+  `gearPlacement`, `cutPlacement`, `textPlacement`, `sketchPoints`,
+  `measurementStart`.
 
 La scena contiene oggetti permanenti (griglia, luci, modello, edges) e overlay
 temporanei. Gli overlay vengono marcati con `userData.transientOverlay` e
@@ -396,6 +398,8 @@ Le primitive sono create in `src/primitives.js`.
   centrata sul punto cliccato e apice lungo la direzione scelta.
 - `createPyramidGeometryFromBase(base, size, height, direction)`: piramide a base
   rettangolare centrata sul punto cliccato, orientata lungo asse faccia/X/Y/Z.
+- `createGearGeometryFromBase(base, options, direction)`: ingranaggio cilindrico
+  a denti dritti semplificati, con foro centrale reale e mozzo opzionale.
 - `createPlaneGeometryFromBase(base, shape, size, direction)`: crea facce 2D
   piatte rettangolari, quadrate o tonde, centrate sul punto cliccato e orientate
   sul piano della faccia o sugli assi principali.
@@ -421,8 +425,58 @@ Le primitive solide nel menu `Solidi` condividono la stessa logica UI:
 - offset X/Y/Z;
 - asse `face`, `x`, `y`, `z` dove applicabile.
 
-Scorciatoie correnti: `B` box, `C` cilindro, `V` cono, `I` piramide, `A` testo
-3D.
+Scorciatoie correnti: `B` box, `C` cilindro, `V` cono, `I` piramide, `K`
+ingranaggio, `A` testo 3D.
+
+### Strumento Ingranaggio
+
+`Ingranaggio` vive nel menu `Solidi` e segue il flusso delle altre primitive:
+click del centro base, anteprima wireframe, parametri nel pannello, offset e
+applicazione tramite `applyPrimitiveGeometry()`.
+
+Parametri:
+
+- operazione: somma o sottrazione;
+- asse: normale della faccia, X, Y, Z;
+- numero denti: 6-200, default 24;
+- modulo in millimetri, default 2;
+- spessore, default 8 mm;
+- foro centrale passante, default 5 mm, 0 per ingranaggio pieno;
+- diametro mozzo e altezza mozzo;
+- gioco/backlash semplificato;
+- qualita: bassa, media, alta.
+
+La geometria e' generata direttamente in `src/primitives.js` senza CSG interna.
+Il profilo parte da:
+
+- diametro primitivo `teeth * module`;
+- addendum `module`;
+- dedendum `1,25 * module`;
+- raggio esterno `pitchRadius + module`;
+- raggio radice corretto per non intersecare il foro.
+
+Il profilo non e' una involuta CAD industriale: ogni dente e' composto da valle,
+fianco, punta e fianco opposto. Il gioco riduce l'ampiezza angolare utile del
+dente in modo conservativo. La qualita aumenta i punti di campionamento dei
+fianchi e della punta, ma resta limitata per evitare mesh troppo pesanti nel
+browser.
+
+Il foro centrale e' una parete interna reale della mesh. Se il diametro richiesto
+supera il raggio radice disponibile, viene limitato al massimo sicuro. Il mozzo e'
+un rialzo centrale sopra il corpo dell'ingranaggio quando `hubWidth` supera lo
+spessore principale; se il diametro mozzo non e' maggiore del foro, la UI segnala
+errore prima di applicare. Il punto cliccato e' il centro della base, come per
+cilindro, cono e piramide.
+
+File coinvolti:
+
+- `src/primitives.js`: generazione profilo e mesh;
+- `src/main.parts/main.part01.js`: stato, riferimenti UI, traduzioni;
+- `src/main.parts/main.part02.js`: reset, inspector, tool active/cursor;
+- `src/main.parts/main.part03.js`: preview, validazione, apply;
+- `src/main.parts/main.part05.js`: eventi e shortcut `K`;
+- `index.html`: voce di menu e form;
+- `test/primitives.test.js`: test geometria pura.
 
 Lo strumento `Piani` vive nel menu `2D` e crea una faccia piatta, non un solido:
 
@@ -660,6 +714,7 @@ Shortcut principali:
 - `C`: cilindro;
 - `V`: cono;
 - `I`: piramide;
+- `K`: ingranaggio;
 - `T`: sottrai;
 - `L`: linea;
 - `N`: piani 2D;

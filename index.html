@@ -77,6 +77,10 @@
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3L4 18h16z"/><path d="M12 3l2 15M4 18l10 3 6-3"/></svg>
               <span>Piramide</span>
             </button>
+            <button class="tool compact" data-tool="gear" title="Ingranaggio (K)">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+              <span>Ingranaggio</span>
+            </button>
             <button class="tool compact" data-tool="text" title="Testo 3D (A)">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14M12 6v13M9 19h6"/></svg>
               <span>Testo 3D</span>
@@ -451,6 +455,89 @@
           </div>
           <button id="apply-pyramid" type="button" class="action-button" disabled>Applica piramide</button>
           <button id="reset-pyramid" type="button" class="secondary-button">Ricomincia</button>
+        </form>
+
+        <form id="gear-form" class="tool-form primitive-form" hidden>
+          <div class="hole-readout">
+            <span>Centro base</span>
+            <strong id="gear-info">Clicca dove vuoi appoggiare l'ingranaggio.</strong>
+            <small>Profilo a denti dritti semplificato, pensato per stampa 3D.</small>
+          </div>
+          <label for="gear-operation">Operazione</label>
+          <select id="gear-operation">
+            <option value="add">Somma al solido</option>
+            <option value="subtract">Sottrai dal solido</option>
+          </select>
+          <label for="gear-axis">Asse</label>
+          <select id="gear-axis">
+            <option value="face">Asse della faccia</option>
+            <option value="z">Asse Z</option>
+            <option value="x">Asse X</option>
+            <option value="y">Asse Y</option>
+          </select>
+          <div class="offset-grid">
+            <label for="gear-teeth">Numero denti</label>
+            <div class="field-with-unit">
+              <input id="gear-teeth" type="text" inputmode="decimal" min="6" max="200" step="1" value="24" />
+              <span>n</span>
+            </div>
+            <label for="gear-module">Modulo</label>
+            <div class="field-with-unit">
+              <input id="gear-module" type="text" inputmode="decimal" min="0.2" step="0.1" value="2" />
+              <span>mm</span>
+            </div>
+            <label for="gear-width">Spessore</label>
+            <div class="field-with-unit">
+              <input id="gear-width" type="text" inputmode="decimal" min="0.5" step="0.1" value="8" />
+              <span>mm</span>
+            </div>
+            <label for="gear-bore">Foro centrale</label>
+            <div class="field-with-unit">
+              <input id="gear-bore" type="text" inputmode="decimal" min="0" step="0.1" value="5" />
+              <span>mm</span>
+            </div>
+            <label for="gear-hub-diameter">Diametro mozzo</label>
+            <div class="field-with-unit">
+              <input id="gear-hub-diameter" type="text" inputmode="decimal" min="0" step="0.1" value="0" />
+              <span>mm</span>
+            </div>
+            <label for="gear-hub-width">Altezza mozzo</label>
+            <div class="field-with-unit">
+              <input id="gear-hub-width" type="text" inputmode="decimal" min="0.5" step="0.1" value="10" />
+              <span>mm</span>
+            </div>
+            <label for="gear-backlash">Gioco</label>
+            <div class="field-with-unit">
+              <input id="gear-backlash" type="text" inputmode="decimal" min="0" step="0.05" value="0.15" />
+              <span>mm</span>
+            </div>
+          </div>
+          <label for="gear-quality">Qualita</label>
+          <select id="gear-quality">
+            <option value="low">Bassa</option>
+            <option value="medium" selected>Media</option>
+            <option value="high">Alta</option>
+          </select>
+          <div class="offset-grid">
+            <label for="gear-offset-x" class="axis-x">Spostamento X</label>
+            <div class="field-with-unit">
+              <input id="gear-offset-x" type="text" inputmode="decimal" step="0.1" value="0" />
+              <span>mm</span>
+            </div>
+            <label for="gear-offset-y" class="axis-y">Spostamento Y</label>
+            <div class="field-with-unit">
+              <input id="gear-offset-y" type="text" inputmode="decimal" step="0.1" value="0" />
+              <span>mm</span>
+            </div>
+            <label for="gear-offset-z" class="axis-z">Spostamento Z</label>
+            <div class="field-with-unit">
+              <input id="gear-offset-z" type="text" inputmode="decimal" step="0.1" value="0" />
+              <span>mm</span>
+            </div>
+          </div>
+          <small>Il gioco riduce l'ampiezza angolare dei denti: non e' un profilo involuta industriale.</small>
+          <button id="apply-gear" type="button" class="action-button" disabled>Applica ingranaggio</button>
+          <button id="reset-gear" type="button" class="secondary-button">Ricomincia</button>
         </form>
 
         <form id="plane-form" class="tool-form primitive-form" hidden>

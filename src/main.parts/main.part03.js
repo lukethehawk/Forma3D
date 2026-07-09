@@ -449,6 +449,112 @@ function applyPyramid() {
   );
 }
 
+function gearDirectionFromState() {
+  if (!gearPlacement) return new THREE.Vector3(0, 0, 1);
+  return axisDirectionFromPlacement(gearPlacement, ui.gearAxis.value, ui.gearOperation.value);
+}
+
+function gearOptionsFromInputs() {
+  const teeth = Math.round(parseDecimal(ui.gearTeeth.value, 24));
+  const module = parseDecimal(ui.gearModule.value, 2);
+  const width = parseDecimal(ui.gearWidth.value, 8);
+  const boreDiameter = parseDecimal(ui.gearBore.value, 0);
+  const hubDiameter = parseDecimal(ui.gearHubDiameter.value, 0);
+  const hubWidth = parseDecimal(ui.gearHubWidth.value, width);
+  const backlash = parseDecimal(ui.gearBacklash.value, 0);
+
+  if (teeth < 6 || teeth > 200) {
+    return { error: 'Il numero denti deve essere tra 6 e 200.' };
+  }
+  if (!(module >= 0.2)) {
+    return { error: 'Il modulo deve essere almeno 0,2 mm.' };
+  }
+  if (!(width >= 0.5)) {
+    return { error: 'Lo spessore deve essere almeno 0,5 mm.' };
+  }
+  if (boreDiameter < 0 || hubDiameter < 0 || hubWidth < 0 || backlash < 0) {
+    return { error: 'Foro, mozzo e gioco non possono essere negativi.' };
+  }
+  if (hubDiameter > 0 && hubDiameter <= boreDiameter) {
+    return { error: 'Il diametro mozzo deve essere maggiore del foro centrale.' };
+  }
+
+  return {
+    options: {
+      backlash,
+      boreDiameter,
+      hubDiameter,
+      hubWidth: hubDiameter > 0 ? Math.max(hubWidth, width) : width,
+      module,
+      quality: ui.gearQuality.value,
+      teeth,
+      width,
+    },
+  };
+}
+
+function gearGeometryFromState() {
+  if (!gearPlacement) return null;
+  const parsed = gearOptionsFromInputs();
+  if (parsed.error) {
+    setStatus(parsed.error);
+    return null;
+  }
+  const base = gearPlacement.basePoint.clone().add(inputVector(ui.gearOffsetInputs));
+  return createGearGeometryFromBase(base, parsed.options, gearDirectionFromState());
+}
+
+function drawGearPreview() {
+  if (!gearPlacement || activeTool !== 'gear') return;
+  const geometry = gearGeometryFromState();
+  if (!geometry) {
+    ui.applyGear.disabled = true;
+    return;
+  }
+  gearPreview = setPreviewMesh(
+    gearPreview,
+    geometry,
+    operationColor(ui.gearOperation.value),
+    'gear-preview',
+  );
+  ui.applyGear.disabled = false;
+}
+
+function setGearPoint(pick) {
+  gearPlacement = {
+    basePoint: pick.point.clone(),
+    normal: pick.normal.clone(),
+  };
+  ui.gearInfo.textContent = `Centro base X ${pick.point.x.toFixed(2)}, Y ${pick.point.y.toFixed(2)}, Z ${pick.point.z.toFixed(2)} mm - snap ${pick.snapKind}.`;
+  ui.gearOffsetInputs.forEach((input) => {
+    input.value = '0';
+  });
+  drawGearPreview();
+  setStatus('Ingranaggio impostato. Regola denti, modulo, foro, mozzo e operazione.');
+}
+
+function gearAt(clientX, clientY) {
+  const pick = pickWorkPoint(clientX, clientY);
+  if (!pick) {
+    setStatus('Clicca sul piano di lavoro o su un solido.');
+    return;
+  }
+  setGearPoint(pick);
+}
+
+function applyGear() {
+  const geometry = gearGeometryFromState();
+  if (!geometry) {
+    setStatus('Imposta prima centro e parametri validi dell\'ingranaggio.');
+    return;
+  }
+  applyPrimitiveGeometry(
+    geometry,
+    ui.gearOperation.value,
+    ui.gearOperation.value === 'subtract' ? 'Ingranaggio sottratto dal solido.' : 'Ingranaggio unito al solido.',
+  );
+}
+
 function planeDirectionFromState() {
   if (!planePlacement) return new THREE.Vector3(0, 0, 1);
   return axisDirectionFromPlacement(planePlacement, ui.planeAxis.value, 'add');
