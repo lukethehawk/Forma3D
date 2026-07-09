@@ -463,8 +463,8 @@ function gearOptionsFromInputs() {
   const hubWidth = parseDecimal(ui.gearHubWidth.value, width);
   const backlash = parseDecimal(ui.gearBacklash.value, 0);
 
-  if (teeth < 6 || teeth > 200) {
-    return { error: 'Il numero denti deve essere tra 6 e 200.' };
+  if (teeth < 6 || teeth > MAX_GEAR_TEETH) {
+    return { error: 'Il numero denti deve essere tra 6 e 80.' };
   }
   if (!(module >= 0.2)) {
     return { error: 'Il modulo deve essere almeno 0,2 mm.' };
@@ -501,13 +501,26 @@ function gearGeometryFromState() {
     return null;
   }
   const base = gearPlacement.basePoint.clone().add(inputVector(ui.gearOffsetInputs));
-  return createGearGeometryFromBase(base, parsed.options, gearDirectionFromState());
+  const geometry = createGearGeometryFromBase(base, parsed.options, gearDirectionFromState());
+  if (triangleCount(geometry) > MAX_GEAR_TRIANGLES) {
+    geometry.dispose();
+    setStatus("L'ingranaggio e troppo dettagliato per il browser: riduci denti o qualita.");
+    return null;
+  }
+  return geometry;
 }
 
 function drawGearPreview() {
+  gearPreviewTimer = null;
   if (!gearPlacement || activeTool !== 'gear') return;
   const geometry = gearGeometryFromState();
   if (!geometry) {
+    if (gearPreview) {
+      scene.remove(gearPreview);
+      disposeObject(gearPreview);
+      gearPreview = null;
+      requestRender();
+    }
     ui.applyGear.disabled = true;
     return;
   }
@@ -520,6 +533,12 @@ function drawGearPreview() {
   ui.applyGear.disabled = false;
 }
 
+function scheduleGearPreview() {
+  if (!gearPlacement || activeTool !== 'gear') return;
+  if (gearPreviewTimer) clearTimeout(gearPreviewTimer);
+  gearPreviewTimer = setTimeout(drawGearPreview, 120);
+}
+
 function setGearPoint(pick) {
   gearPlacement = {
     basePoint: pick.point.clone(),
@@ -530,7 +549,7 @@ function setGearPoint(pick) {
     input.value = '0';
   });
   drawGearPreview();
-  setStatus('Ingranaggio impostato. Regola denti, modulo, foro, mozzo e operazione.');
+  setStatus('Ingranaggio impostato. Regola denti, modulo, foro e mozzo; verra aggiunto senza booleane.');
 }
 
 function gearAt(clientX, clientY) {
@@ -548,10 +567,11 @@ function applyGear() {
     setStatus('Imposta prima centro e parametri validi dell\'ingranaggio.');
     return;
   }
-  applyPrimitiveGeometry(
+  setStatus('Creazione ingranaggio in corso...');
+  appendGeometryToModel(
     geometry,
-    ui.gearOperation.value,
-    ui.gearOperation.value === 'subtract' ? 'Ingranaggio sottratto dal solido.' : 'Ingranaggio unito al solido.',
+    'Ingranaggio aggiunto come corpo separato.',
+    'Creazione ingranaggio in corso...',
   );
 }
 

@@ -139,6 +139,7 @@ let pyramidPlacement = null;
 let pyramidPreview = null;
 let gearPlacement = null;
 let gearPreview = null;
+let gearPreviewTimer = null;
 let planePlacement = null;
 let planePreview = null;
 let cutPlacement = null;
@@ -203,6 +204,8 @@ const MAX_TEXT_BOOLEAN_TRIANGLES = 12000;
 const MAX_TEXT_BOOLEAN_TOTAL_TRIANGLES = 70000;
 const TEXT_ENGRAVE_SURFACE_OVERLAP = 0.25;
 const MAX_EDGE_TRIANGLES = 50000;
+const MAX_GEAR_TEETH = 80;
+const MAX_GEAR_TRIANGLES = 12000;
 const MODEL_EDGE_ANGLE = 80;
 let appBusy = false;
 let renderRequested = false;
@@ -628,6 +631,9 @@ const staticTranslations = {
     'Piramide impostata. Regola base, altezza, asse e operazione.': 'Pyramid set. Adjust base, height, axis and operation.',
     'Clicca il centro di appoggio della piramide.': 'Click the pyramid base center.',
     'Profilo a denti dritti semplificato, pensato per stampa 3D.': 'Simplified spur gear profile for 3D printing.',
+    'Profilo semplificato e aggiunto senza booleane per evitare blocchi del browser.': 'Simplified profile added without booleans to avoid browser freezes.',
+    Modalita: 'Mode',
+    'Aggiungi come corpo separato': 'Add as separate body',
     'Numero denti': 'Teeth',
     Modulo: 'Module',
     Spessore: 'Width',
@@ -640,12 +646,18 @@ const staticTranslations = {
     Media: 'Medium',
     Alta: 'High',
     "Il gioco riduce l'ampiezza angolare dei denti: non e' un profilo involuta industriale.": 'Backlash narrows tooth angles: this is not an industrial involute profile.',
+    "Il gioco riduce l'ampiezza angolare dei denti. Per stabilita, il massimo e' 80 denti.": 'Backlash narrows tooth angles. For stability, the maximum is 80 teeth.',
     'Applica ingranaggio': 'Apply gear',
     Ingranaggio: 'Gear',
     'Crea un ingranaggio cilindrico a denti dritti con foro centrale e mozzo opzionale.': 'Create a simplified spur gear with center bore and optional hub.',
     'Ingranaggio: clicca il centro base, poi regola denti, modulo, spessore e foro.': 'Gear: click the base center, then adjust teeth, module, width and bore.',
     'Ingranaggio impostato. Regola denti, modulo, foro, mozzo e operazione.': 'Gear set. Adjust teeth, module, bore, hub and operation.',
+    'Ingranaggio impostato. Regola denti, modulo, foro e mozzo; verra aggiunto senza booleane.': 'Gear set. Adjust teeth, module, bore and hub; it will be added without booleans.',
     "Clicca il centro di appoggio dell'ingranaggio.": 'Click the gear base center.',
+    'Il numero denti deve essere tra 6 e 80.': 'Teeth must be between 6 and 80.',
+    "L'ingranaggio e troppo dettagliato per il browser: riduci denti o qualita.": 'This gear is too detailed for the browser: reduce teeth or quality.',
+    'Creazione ingranaggio in corso...': 'Creating gear...',
+    'Ingranaggio aggiunto come corpo separato.': 'Gear added as a separate body.',
     'Centro piano': 'Plane center',
     "Il piano e' una faccia piatta: usa Spingi/Tira per darle volume.": 'The plane is a flat face: use Push/Pull to give it volume.',
     'Forma piano': 'Plane shape',

@@ -66,6 +66,10 @@ function clearPyramidPlacement() {
 
 function clearGearPlacement() {
   gearPlacement = null;
+  if (gearPreviewTimer) {
+    clearTimeout(gearPreviewTimer);
+    gearPreviewTimer = null;
+  }
   if (gearPreview) {
     scene.remove(gearPreview);
     disposeObject(gearPreview);

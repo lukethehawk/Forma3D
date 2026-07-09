@@ -240,8 +240,8 @@ document.querySelector('#reset-pyramid').addEventListener('click', () => {
   ui.gearOperation,
   ...ui.gearOffsetInputs,
 ].forEach((input) => {
-  input.addEventListener('input', drawGearPreview);
-  input.addEventListener('change', drawGearPreview);
+  input.addEventListener('input', scheduleGearPreview);
+  input.addEventListener('change', scheduleGearPreview);
 });
 ui.applyGear.addEventListener('click', (event) => {
   event.preventDefault();

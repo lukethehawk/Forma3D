@@ -470,12 +470,11 @@
           <div class="hole-readout">
             <span>Centro base</span>
             <strong id="gear-info">Clicca dove vuoi appoggiare l'ingranaggio.</strong>
-            <small>Profilo a denti dritti semplificato, pensato per stampa 3D.</small>
+            <small>Profilo semplificato e aggiunto senza booleane per evitare blocchi del browser.</small>
           </div>
-          <label for="gear-operation">Operazione</label>
+          <label for="gear-operation">Modalita</label>
           <select id="gear-operation">
-            <option value="add">Somma al solido</option>
-            <option value="subtract">Sottrai dal solido</option>
+            <option value="append">Aggiungi come corpo separato</option>
           </select>
           <label for="gear-axis">Asse</label>
           <select id="gear-axis">
@@ -487,7 +486,7 @@
           <div class="offset-grid">
             <label for="gear-teeth">Numero denti</label>
             <div class="field-with-unit">
-              <input id="gear-teeth" type="text" inputmode="decimal" min="6" max="200" step="1" value="24" />
+              <input id="gear-teeth" type="text" inputmode="decimal" min="6" max="80" step="1" value="24" />
               <span>n</span>
             </div>
             <label for="gear-module">Modulo</label>
@@ -544,7 +543,7 @@
               <span>mm</span>
             </div>
           </div>
-          <small>Il gioco riduce l'ampiezza angolare dei denti: non e' un profilo involuta industriale.</small>
+          <small>Il gioco riduce l'ampiezza angolare dei denti. Per stabilita, il massimo e' 80 denti.</small>
           <button id="apply-gear" type="button" class="action-button" disabled>Applica ingranaggio</button>
           <button id="reset-gear" type="button" class="secondary-button">Ricomincia</button>
         </form>
