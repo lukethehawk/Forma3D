@@ -4,17 +4,34 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f4f1eb" />
-    <title>Forma 3D - Editor STL</title>
+    <title>Forma3D - Editor STL</title>
   </head>
   <body>
     <header class="topbar">
       <div class="brand">
-        <span class="brand-mark" aria-hidden="true">F3</span>
-        <div>
-          <strong>Forma 3D</strong>
-          <span id="file-name">Modello senza titolo</span>
-        </div>
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 64 64" focusable="false">
+            <g class="logo-wire">
+              <path d="M32 5 55 18.5v27L32 59 9 45.5v-27Z" />
+              <path d="M32 5v18.5M32 40.5V59M9 18.5l23 13.5 23-13.5M9 45.5l23-13.5 23 13.5" />
+              <path d="M9 18.5v27M55 18.5v27" />
+              <circle cx="32" cy="5" r="3.2" />
+              <circle cx="55" cy="18.5" r="3.2" />
+              <circle cx="55" cy="45.5" r="3.2" />
+              <circle cx="32" cy="59" r="3.2" />
+              <circle cx="9" cy="45.5" r="3.2" />
+              <circle cx="9" cy="18.5" r="3.2" />
+            </g>
+            <g class="logo-core">
+              <path d="M32 23.5 43 30l-11 6.5L21 30Z" />
+              <path d="M21 30 32 36.5v13L21 43Z" />
+              <path d="M43 30 32 36.5v13L43 43Z" />
+            </g>
+          </svg>
+        </span>
+        <strong class="brand-wordmark"><span>Forma</span><span>3D</span></strong>
       </div>
+      <span id="file-name" class="topbar-file-name">Modello senza titolo</span>
       <nav class="file-actions" aria-label="Azioni file">
         <button id="open-file" class="top-button">
           <span class="button-icon">O</span> Apri STL

@@ -47,41 +47,81 @@ button {
 }
 
 .brand {
+  min-width: 178px;
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: 9px;
+  position: relative;
+  z-index: 2;
 }
 
 .brand-mark {
-  width: 38px;
-  height: 38px;
-  display: grid;
-  place-items: center;
-  color: white;
-  background: var(--orange);
-  border-radius: 8px 8px 8px 2px;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  display: block;
+}
+
+.brand-mark svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.logo-wire {
+  fill: none;
+  stroke: #172637;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3.6;
+}
+
+.logo-wire circle {
+  fill: #172637;
+  stroke: none;
+}
+
+.logo-core path {
+  fill: var(--orange);
+  stroke: #ffffff;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
+}
+
+.brand-wordmark {
+  display: flex;
+  align-items: baseline;
+  color: #172637;
+  font-size: 20px;
   font-weight: 800;
-  letter-spacing: -1px;
+  letter-spacing: 0;
 }
 
-.brand div {
-  display: grid;
-  gap: 2px;
+.brand-wordmark span:last-child {
+  color: var(--orange);
 }
 
-.brand strong {
-  font-size: 16px;
-}
-
-.brand #file-name {
+.topbar-file-name {
+  max-width: clamp(120px, calc(100vw - 820px), 520px);
+  position: absolute;
+  left: 50%;
+  z-index: 1;
+  transform: translateX(-50%);
   color: var(--ink-soft);
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .file-actions {
   display: flex;
   align-items: center;
   gap: 8px;
+  position: relative;
+  z-index: 2;
 }
 
 .top-menu {
@@ -998,7 +1038,7 @@ button {
 }
 
 @media (max-width: 760px) {
-  .brand #file-name,
+  .topbar-file-name,
   .button-icon,
   .empty-state {
     display: none;

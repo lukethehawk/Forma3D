@@ -423,7 +423,7 @@ function setStatus(message) {
 
 const languageText = {
   it: {
-    title: 'Forma 3D - Editor STL',
+    title: 'Forma3D - Editor STL',
     open: 'Apri STL',
     remove: 'Rimuovi modello',
     options: 'Opzioni',
@@ -453,7 +453,7 @@ const languageText = {
     zoomfit: 'Inquadra',
   },
   en: {
-    title: 'Forma 3D - STL Editor',
+    title: 'Forma3D - STL Editor',
     open: 'Open STL',
     remove: 'Remove model',
     options: 'Options',
