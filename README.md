@@ -200,6 +200,23 @@ anything.
 Exports include the full model as STL, the full model as OBJ, and the current
 selection as STL. File names are sanitized from the current model/project name.
 
+### Large STL and Performance Mode
+
+Forma3D does not impose a fixed upload limit because files are opened locally in
+the browser or desktop app. After import, the file name in the topbar shows a
+small complexity badge; clicking it opens model details with file size,
+triangles, vertices and class:
+
+- Light: under 50k triangles.
+- Medium: 50k to 250k triangles.
+- Large: 250k to 1M triangles.
+- Very large: above 1M triangles.
+
+Large files remain openable, but performance depends on RAM, GPU and triangle
+count. For very large meshes, automatic connected-body analysis is deferred so
+the view can stay responsive; edges, booleans and some analyses may be
+simplified or limited.
+
 ### GitHub Pages
 
 GitHub Pages must serve the Vite build output, not the repository root. The
@@ -397,6 +414,23 @@ senza caricare nulla online.
 Gli export includono il modello completo come STL, il modello completo come OBJ
 e la selezione corrente come STL. I nomi file vengono ripuliti a partire dal
 nome modello/progetto corrente.
+
+### STL grandi e modalita performance
+
+Forma3D non impone un limite fisso di upload perche i file vengono aperti
+localmente nel browser o nell'app desktop. Dopo l'import, il nome file nella
+topbar mostra un piccolo badge di complessita; cliccandolo si apre un dettaglio
+con dimensione file, triangoli, vertici e classe:
+
+- Leggero: sotto 50k triangoli.
+- Medio: da 50k a 250k triangoli.
+- Grande: da 250k a 1M triangoli.
+- Molto grande: sopra 1M triangoli.
+
+I file grandi restano apribili, ma le prestazioni dipendono da RAM, GPU e
+numero di triangoli. Sulle mesh molto grandi l'analisi automatica dei corpi
+connessi viene rimandata per mantenere la vista reattiva; bordi, booleane e
+alcune analisi possono essere semplificate o limitate.
 
 ### GitHub Pages
 

@@ -31,7 +31,17 @@
         </span>
         <strong class="brand-wordmark"><span>Forma</span><span>3D</span></strong>
       </div>
-      <span id="file-name" class="topbar-file-name">Modello senza titolo</span>
+      <div class="topbar-file">
+        <button id="file-info-button" class="topbar-file-name" type="button" aria-haspopup="true" aria-expanded="false">
+          <span id="file-name">Modello senza titolo</span>
+          <span id="file-complexity-badge" class="file-complexity-badge" hidden>Leggero</span>
+        </button>
+        <div id="file-info-popover" class="file-info-popover" hidden>
+          <strong id="file-info-title">Informazioni modello</strong>
+          <div id="file-info-details"></div>
+          <p id="file-info-message"></p>
+        </div>
+      </div>
       <nav class="file-actions" aria-label="Azioni file">
         <button id="open-file" class="top-button">
           <span class="button-icon">O</span> Apri STL

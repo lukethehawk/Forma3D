@@ -28,6 +28,7 @@ import {
   extractTrianglesFromGeometry,
   findConnectedComponent,
   findCoplanarRegion,
+  modelComplexityInfo,
   pushPullGeometry,
   regionHasCoplanarSupport,
   regionHasOpenBoundary,
@@ -142,8 +143,10 @@ let selectionMode = localStorage.getItem('forma3d-selection-mode') ?? 'face';
 let currentLanguage = 'en';
 let currentFileName = 'modello-esempio.stl';
 let sourceStlName = 'modello-esempio.stl';
+let currentModelInfo = null;
 let objectItems = [];
 let objectNames = [];
+let objectItemsDeferred = false;
 let objectsDrawerOpen = false;
 let pointerDown = null;
 let measurementStart = null;
@@ -248,6 +251,12 @@ const ui = {
   languageSelect: document.querySelector('#language-select'),
   fileInput: document.querySelector('#file-input'),
   projectInput: document.querySelector('#project-input'),
+  fileInfoButton: document.querySelector('#file-info-button'),
+  fileComplexityBadge: document.querySelector('#file-complexity-badge'),
+  fileInfoPopover: document.querySelector('#file-info-popover'),
+  fileInfoTitle: document.querySelector('#file-info-title'),
+  fileInfoDetails: document.querySelector('#file-info-details'),
+  fileInfoMessage: document.querySelector('#file-info-message'),
   fileName: document.querySelector('#file-name'),
   status: document.querySelector('#status'),
   hint: document.querySelector('#hint'),
@@ -437,6 +446,82 @@ const ui = {
 
 function setStatus(message) {
   ui.status.textContent = t(message);
+}
+
+function localizedNumber(value) {
+  return Number(value).toLocaleString(currentLanguage === 'en' ? 'en-US' : 'it-IT');
+}
+
+function localizedDecimal(value, digits = 1) {
+  return Number(value).toLocaleString(currentLanguage === 'en' ? 'en-US' : 'it-IT', {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+}
+
+function complexityLabel(level) {
+  const labels = currentLanguage === 'en'
+    ? { light: 'Light', medium: 'Medium', large: 'Large', 'very-large': 'Very large' }
+    : { light: 'Leggero', medium: 'Medio', large: 'Grande', 'very-large': 'Molto grande' };
+  return labels[level] ?? labels.light;
+}
+
+function largeModelMessage(info = currentModelInfo) {
+  if (!info?.isLarge) {
+    return currentLanguage === 'en'
+      ? 'Local model. Performance depends on RAM, GPU and triangle count.'
+      : 'Modello locale. Le prestazioni dipendono da RAM, GPU e numero di triangoli.';
+  }
+  return currentLanguage === 'en'
+    ? 'Large file loaded locally. The view stays available, but edges, booleans and some analyses may be simplified to keep the app responsive.'
+    : "File grande caricato localmente. La vista resta disponibile, ma bordi, booleane e alcune analisi possono essere semplificate per mantenere l'app reattiva.";
+}
+
+function loadedModelStatus(name, info = currentModelInfo) {
+  const summary = currentLanguage === 'en'
+    ? `${name} opened. Interpreted units: millimeters. ${complexityLabel(info?.level)}: ${localizedNumber(info?.triangles ?? 0)} triangles.`
+    : `${name} aperto. Unita interpretata: millimetri. ${complexityLabel(info?.level)}: ${localizedNumber(info?.triangles ?? 0)} triangoli.`;
+  return info?.isLarge ? `${summary} ${largeModelMessage(info)}` : summary;
+}
+
+function renderFileInfo() {
+  if (!ui.fileInfoButton || !ui.fileComplexityBadge || !ui.fileInfoDetails) return;
+  const info = currentModelInfo;
+  ui.fileInfoButton.disabled = !info;
+  ui.fileComplexityBadge.hidden = !info;
+  ui.fileInfoPopover.hidden = ui.fileInfoPopover.hidden || !info;
+
+  if (!info) {
+    ui.fileComplexityBadge.textContent = '';
+    ui.fileInfoDetails.replaceChildren();
+    ui.fileInfoMessage.textContent = '';
+    ui.fileInfoButton.setAttribute('aria-expanded', 'false');
+    return;
+  }
+
+  ui.fileComplexityBadge.className = `file-complexity-badge complexity-${info.level}`;
+  ui.fileComplexityBadge.textContent = complexityLabel(info.level);
+  ui.fileInfoTitle.textContent = currentLanguage === 'en' ? 'Model information' : 'Informazioni modello';
+
+  const sizeText = info.fileSizeBytes > 0
+    ? `${localizedDecimal(info.fileSizeMb, info.fileSizeMb >= 10 ? 0 : 1)} MB`
+    : currentLanguage === 'en' ? 'Not available' : 'Non disponibile';
+  const rows = [
+    [currentLanguage === 'en' ? 'Class' : 'Classe', complexityLabel(info.level)],
+    [currentLanguage === 'en' ? 'Size' : 'Dimensione', sizeText],
+    [currentLanguage === 'en' ? 'Triangles' : 'Triangoli', localizedNumber(info.triangles)],
+    [currentLanguage === 'en' ? 'Vertices' : 'Vertici', localizedNumber(info.vertices)],
+  ];
+  const details = document.createElement('dl');
+  for (const [label, value] of rows) {
+    const term = document.createElement('dt');
+    term.textContent = label;
+    const description = document.createElement('dd');
+    description.textContent = value;
+    details.append(term, description);
+  }
+  ui.fileInfoDetails.replaceChildren(details);
+  ui.fileInfoMessage.textContent = largeModelMessage(info);
 }
 
 const languageText = {
@@ -974,6 +1059,7 @@ function applyLanguage(language) {
     'zoomfit',
   ].forEach((tool) => setToolText(tool, dictionary[tool]));
   setText('#objects-toggle span', dictionary.objects);
+  renderFileInfo();
   renderObjectsDrawer();
   updateInspector();
 }

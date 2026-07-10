@@ -28,6 +28,38 @@ export function triangleCount(geometry) {
   return (geometry.getIndex()?.count ?? position.count) / 3;
 }
 
+export const MODEL_COMPLEXITY_THRESHOLDS = {
+  mediumTriangles: 50000,
+  largeTriangles: 250000,
+  veryLargeTriangles: 1000000,
+};
+
+export function classifyModelComplexity(triangles) {
+  if (triangles < MODEL_COMPLEXITY_THRESHOLDS.mediumTriangles) return 'light';
+  if (triangles < MODEL_COMPLEXITY_THRESHOLDS.largeTriangles) return 'medium';
+  if (triangles <= MODEL_COMPLEXITY_THRESHOLDS.veryLargeTriangles) return 'large';
+  return 'very-large';
+}
+
+export function modelComplexityInfo(file, geometry) {
+  const position = geometry?.getAttribute?.('position');
+  const triangles = geometry ? Math.round(triangleCount(geometry)) : 0;
+  const vertices = position?.count ?? 0;
+  const fileSizeBytes = Number(file?.size) || 0;
+  const fileSizeMb = fileSizeBytes / (1024 * 1024);
+  const level = classifyModelComplexity(triangles);
+  return {
+    fileSizeBytes,
+    fileSizeMb,
+    triangles,
+    vertices,
+    level,
+    isLarge: level === 'large' || level === 'very-large',
+    isVeryLarge: level === 'very-large',
+    skipConnectedComponents: triangles > MODEL_COMPLEXITY_THRESHOLDS.veryLargeTriangles,
+  };
+}
+
 function pointKey(point, tolerance = DEFAULT_TOLERANCE) {
   return [
     Math.round(point.x / tolerance),

@@ -41,6 +41,9 @@ connected-body workflows:
   and STL export for the selected face/body.
 - The left toolbar ends with an `Objects` button. It opens a compact,
   scrollable drawer with connected bodies, rename, select, export and delete.
+- The file name in the topbar now opens a model-info popover with file size,
+  triangles, vertices and complexity class. Very large meshes defer automatic
+  connected-body analysis to keep import responsive.
 
 Working rule agreed with the user: after a complete change, if checks pass,
 commit and push to GitHub unless explicitly told not to.
@@ -206,6 +209,19 @@ remain visible.
 `openStl(file)` parses STL, centers the mesh in X/Y, moves minimum Z to zero,
 clears history, calls `setModelGeometry()` and fits the view.
 
+`modelComplexityInfo(file, geometry)` classifies the current model:
+
+- Light: under 50k triangles.
+- Medium: 50k to 250k triangles.
+- Large: 250k to 1M triangles.
+- Very large: above 1M triangles.
+
+Forma3D does not impose a fixed upload/import limit because STL files are
+handled locally. Performance depends on RAM, GPU and triangle count. The topbar
+file-name popover shows size, triangles, vertices and class. For meshes above
+1M triangles, `refreshObjectItems()` defers `collectConnectedComponents()` so
+opening the file does not immediately run a costly component analysis.
+
 Project files are local JSON documents with extension `.forma3d.json`. Version
 1 stores:
 
@@ -271,6 +287,9 @@ can live inside the same STL mesh.
 `refreshObjectItems()` calls `collectConnectedComponents(model.geometry)` and
 stores every connected triangle island in `objectItems`. This metadata layer is
 used by project save/open, selection export and the compact `Objects` drawer.
+For very large meshes, `currentModelInfo.skipConnectedComponents` prevents this
+automatic scan during import; the drawer shows that object analysis was
+deferred.
 
 Since STL has no persistent object IDs, names are index-based and may shift
 after destructive topology changes. Future iterations should replace
@@ -447,6 +466,9 @@ di intervenire ancora:
   della selezione.
 - la toolbar sinistra termina con `Objects`, che apre un drawer compatto e
   scrollabile con corpi connessi, rinomina, selezione, export ed eliminazione.
+- il nome file nella topbar apre un popover con dimensione, triangoli, vertici e
+  classe di complessita. Le mesh molto grandi rimandano l'analisi automatica dei
+  corpi connessi per mantenere reattivo l'import.
 
 Regola di lavoro concordata: dopo una modifica completa, se `npm test` e
 `npm run build` passano, fare commit e push su GitHub salvo richiesta contraria.
@@ -694,6 +716,19 @@ senza mostrare tutti i raggi interni della triangolazione.
 L'app interpreta le unita come millimetri. STL non contiene unita reali, quindi
 questa e' una convenzione di lavoro.
 
+`modelComplexityInfo(file, geometry)` classifica il modello corrente:
+
+- Leggero: sotto 50k triangoli.
+- Medio: da 50k a 250k triangoli.
+- Grande: da 250k a 1M triangoli.
+- Molto grande: sopra 1M triangoli.
+
+Forma3D non impone un limite fisso di upload/import perche i file STL vengono
+gestiti localmente. Le prestazioni dipendono da RAM, GPU e numero di triangoli.
+Il popover sul nome file mostra dimensione, triangoli, vertici e classe. Sopra
+1M triangoli, `refreshObjectItems()` rimanda `collectConnectedComponents()` per
+evitare un'analisi componenti costosa subito dopo il parse.
+
 Il formato progetto locale usa file `.forma3d.json`. La versione 1 salva:
 
 - `version`, `name`, `units`, `sourceStlName`, `currentFileName`, `savedAt`;
@@ -839,6 +874,9 @@ di triangoli cliccata.
 salva ogni isola di triangoli connessi in `objectItems`. Questo strato viene
 usato da salvataggio/apertura progetto, export selezione e drawer compatto
 `Objects`.
+Sulle mesh molto grandi, `currentModelInfo.skipConnectedComponents` evita questa
+scansione automatica durante l'import; il drawer segnala che l'analisi oggetti e'
+stata rimandata.
 
 Poiche STL non ha ID persistenti, i nomi sono per ora legati all'indice del
 componente e potrebbero spostarsi dopo modifiche topologiche distruttive. In

@@ -43,17 +43,18 @@ async function openStl(file) {
     const box = geometry.boundingBox;
     const center = box.getCenter(new THREE.Vector3());
     geometry.translate(-center.x, -center.y, -box.min.z);
+    currentFileName = file.name;
+    sourceStlName = file.name;
+    currentModelInfo = modelComplexityInfo(file, geometry);
     for (const item of undoStack) item.dispose();
     for (const item of redoStack) item.dispose();
     undoStack.length = 0;
     redoStack.length = 0;
     setModelGeometry(geometry, false);
-    currentFileName = file.name;
-    sourceStlName = file.name;
     ui.fileName.textContent = file.name;
     updateHistoryButtons();
     fitView();
-    setStatus(`${file.name} aperto. Unita interpretata: millimetri.`);
+    setStatus(loadedModelStatus(file.name, currentModelInfo));
   } catch (error) {
     console.error(error);
     setStatus('Il file STL non e leggibile.');
@@ -249,10 +250,11 @@ async function openProject(file) {
     objectNames = Array.isArray(project.objects)
       ? project.objects.map((item, index) => item.name || objectDefaultName(index))
       : [];
-    setModelGeometry(geometry, false, { preserveSketch: true });
-    restoreGuides(project.guides);
     currentFileName = project.currentFileName || file.name;
     sourceStlName = project.sourceStlName || currentFileName;
+    currentModelInfo = modelComplexityInfo(file, geometry);
+    setModelGeometry(geometry, false, { preserveSketch: true });
+    restoreGuides(project.guides);
     ui.fileName.textContent = currentFileName;
     if (project.camera) {
       camera.position.copy(vectorFromArray(project.camera.position, camera.position));
@@ -297,6 +299,12 @@ ui.exportButton.addEventListener('click', exportStl);
 ui.exportObjButton.addEventListener('click', exportObj);
 ui.exportSelectionButton.addEventListener('click', () => exportSelection('stl'));
 ui.saveProjectButton.addEventListener('click', saveProject);
+ui.fileInfoButton.addEventListener('click', () => {
+  if (!currentModelInfo) return;
+  const nextHidden = !ui.fileInfoPopover.hidden;
+  ui.fileInfoPopover.hidden = nextHidden;
+  ui.fileInfoButton.setAttribute('aria-expanded', String(!nextHidden));
+});
 ui.objectsToggle.addEventListener('click', () => {
   setObjectsDrawerOpen(!objectsDrawerOpen);
 });
@@ -327,6 +335,12 @@ ui.optionsMenuButton.addEventListener('click', () => {
   ui.optionsMenuButton.setAttribute('aria-expanded', String(!nextHidden));
 });
 document.addEventListener('click', (event) => {
+  if (!ui.fileInfoPopover.hidden
+    && !ui.fileInfoPopover.contains(event.target)
+    && !ui.fileInfoButton.contains(event.target)) {
+    ui.fileInfoPopover.hidden = true;
+    ui.fileInfoButton.setAttribute('aria-expanded', 'false');
+  }
   if (objectsDrawerOpen
     && !ui.objectsDrawer.contains(event.target)
     && !ui.objectsToggle.contains(event.target)) {

@@ -11,6 +11,7 @@ import {
   extractTrianglesFromGeometry,
   findConnectedComponent,
   findCoplanarRegion,
+  modelComplexityInfo,
   pushPullGeometry,
   regionHasCoplanarSupport,
   regionHasOpenBoundary,
@@ -130,6 +131,27 @@ test('triangleCount supports indexed and non-indexed geometry', () => {
   const nonIndexed = indexed.toNonIndexed();
   assert.equal(triangleCount(indexed), 12);
   assert.equal(triangleCount(nonIndexed), 12);
+});
+
+test('modelComplexityInfo classifies triangle ranges and file size', () => {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(9 * 50000), 3));
+  const info = modelComplexityInfo({ size: 2 * 1024 * 1024 }, geometry);
+  assert.equal(info.fileSizeMb, 2);
+  assert.equal(info.triangles, 50000);
+  assert.equal(info.vertices, 150000);
+  assert.equal(info.level, 'medium');
+  assert.equal(info.skipConnectedComponents, false);
+});
+
+test('modelComplexityInfo defers connected components above one million triangles', () => {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(9 * 1000001), 3));
+  const info = modelComplexityInfo({ size: 0 }, geometry);
+  assert.equal(info.level, 'very-large');
+  assert.equal(info.isLarge, true);
+  assert.equal(info.isVeryLarge, true);
+  assert.equal(info.skipConnectedComponents, true);
 });
 
 test('combineGeometries appends geometry positions without a boolean operation', () => {

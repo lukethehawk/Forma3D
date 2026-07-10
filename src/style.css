@@ -101,19 +101,120 @@ button {
   color: var(--orange);
 }
 
-.topbar-file-name {
+.topbar-file {
   max-width: clamp(120px, calc(100vw - 820px), 520px);
   position: absolute;
   left: 50%;
   z-index: 1;
   transform: translateX(-50%);
+}
+
+.topbar-file-name {
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 6px;
+  padding: 5px 8px;
   color: var(--ink-soft);
+  background: transparent;
+  cursor: pointer;
   font-size: 13px;
   font-weight: 700;
+}
+
+.topbar-file-name:hover,
+.topbar-file-name[aria-expanded="true"] {
+  background: rgb(255 255 255 / 75%);
+}
+
+.topbar-file-name #file-name {
+  min-width: 0;
   overflow: hidden;
-  text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.file-complexity-badge {
+  flex: 0 0 auto;
+  padding: 2px 6px;
+  border-radius: 999px;
+  color: #263238;
+  background: #e8edef;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.file-complexity-badge.complexity-light {
+  color: #1f6f3a;
+  background: #dff1e6;
+}
+
+.file-complexity-badge.complexity-medium {
+  color: #6b5b11;
+  background: #f5edc8;
+}
+
+.file-complexity-badge.complexity-large {
+  color: #8a451c;
+  background: #f7dfcc;
+}
+
+.file-complexity-badge.complexity-very-large {
+  color: #8d2b2b;
+  background: #f2d1d1;
+}
+
+.file-info-popover {
+  width: 300px;
+  position: absolute;
+  z-index: 35;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: grid;
+  gap: 8px;
+  padding: 11px;
+  border: 1px solid #c8ced0;
+  border-radius: 7px;
+  color: #2d373c;
+  background: white;
+  box-shadow: 0 10px 26px rgb(32 42 47 / 18%);
+  font-size: 12px;
+}
+
+.file-info-popover[hidden] {
+  display: none;
+}
+
+.file-info-popover strong {
+  font-size: 13px;
+}
+
+.file-info-popover dl {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 5px 12px;
+  margin: 0;
+}
+
+.file-info-popover dt {
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+
+.file-info-popover dd {
+  margin: 0;
+  font-weight: 700;
+  text-align: right;
+}
+
+.file-info-popover p {
+  margin: 0;
+  color: var(--ink-soft);
+  line-height: 1.35;
 }
 
 .file-actions {
@@ -1132,7 +1233,7 @@ button {
 }
 
 @media (max-width: 760px) {
-  .topbar-file-name,
+  .topbar-file,
   .button-icon,
   .view-cube,
   .objects-drawer {

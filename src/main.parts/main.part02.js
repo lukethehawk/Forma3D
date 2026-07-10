@@ -214,10 +214,21 @@ function refreshObjectItems() {
   if (!model) {
     objectItems = [];
     objectNames = [];
+    objectItemsDeferred = false;
     renderObjectsDrawer();
     return;
   }
 
+  const info = currentModelInfo ?? modelComplexityInfo(null, model.geometry);
+  if (info.skipConnectedComponents) {
+    objectItems = [];
+    objectNames = [];
+    objectItemsDeferred = true;
+    renderObjectsDrawer();
+    return;
+  }
+
+  objectItemsDeferred = false;
   const previousNames = objectNames.slice();
   const components = collectConnectedComponents(model.geometry);
   objectItems = components.map((component, index) => ({
@@ -248,7 +259,11 @@ function renderObjectsDrawer() {
 
   if (!objectItems.length) {
     const empty = document.createElement('span');
-    empty.textContent = t('Nessun corpo');
+    empty.textContent = objectItemsDeferred
+      ? currentLanguage === 'en'
+        ? 'Object analysis deferred for this very large mesh.'
+        : 'Analisi oggetti rimandata per questa mesh molto grande.'
+      : t('Nessun corpo');
     ui.objectsList.append(empty);
     return;
   }
@@ -331,6 +346,8 @@ function setModelGeometry(geometry, recordHistory = true, options = {}) {
   model = new THREE.Mesh(geometry, modelMaterial);
   scene.add(model);
   snapPoints = collectDisplaySnapPoints(model.geometry, MODEL_EDGE_ANGLE);
+  currentModelInfo = modelComplexityInfo({ size: currentModelInfo?.fileSizeBytes ?? 0 }, model.geometry);
+  renderFileInfo();
   refreshObjectItems();
   updateEdges();
   updateModelActions();
@@ -405,6 +422,8 @@ function clearCurrentModel(message = 'Modello rimosso. Apri un STL o crea una nu
   clearSnapIndicator();
   currentFileName = 'modello-senza-titolo.stl';
   sourceStlName = 'modello-senza-titolo.stl';
+  currentModelInfo = null;
+  renderFileInfo();
   ui.fileName.textContent = 'Nessun modello';
   updateModelActions();
   refreshObjectItems();
