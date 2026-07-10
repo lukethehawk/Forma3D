@@ -49,6 +49,7 @@ async function openStl(file) {
     redoStack.length = 0;
     setModelGeometry(geometry, false);
     currentFileName = file.name;
+    sourceStlName = file.name;
     ui.fileName.textContent = file.name;
     updateHistoryButtons();
     fitView();
@@ -59,18 +60,205 @@ async function openStl(file) {
   }
 }
 
-function exportStl() {
-  if (!model) return;
-  const exporter = new STLExporter();
-  const data = exporter.parse(model, { binary: true });
-  const blob = new Blob([data], { type: 'model/stl' });
+function sanitizeFileBase(name, fallback = 'forma3d-model') {
+  return String(name || fallback)
+    .replace(/\.(stl|obj|forma3d\.json|json)$/i, '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9._-]+/gi, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80) || fallback;
+}
+
+function downloadBlob(blob, filename) {
   const link = document.createElement('a');
-  const base = currentFileName.replace(/\.stl$/i, '');
   link.href = URL.createObjectURL(blob);
-  link.download = `${base}-modificato.stl`;
+  link.download = filename;
   link.click();
   URL.revokeObjectURL(link.href);
-  setStatus(`Esportato ${link.download}.`);
+  return filename;
+}
+
+function exportGeometryAsStl(geometry, filename) {
+  const exporter = new STLExporter();
+  const data = exporter.parse(new THREE.Mesh(geometry, modelMaterial), { binary: true });
+  const blob = new Blob([data], { type: 'model/stl' });
+  setStatus(`Esportato ${downloadBlob(blob, filename)}.`);
+}
+
+function exportGeometryAsObj(geometry, filename) {
+  const exporter = new OBJExporter();
+  const data = exporter.parse(new THREE.Mesh(geometry, modelMaterial));
+  const blob = new Blob([data], { type: 'model/obj' });
+  setStatus(`Esportato ${downloadBlob(blob, filename)}.`);
+}
+
+function selectedGeometryForExport() {
+  if (!model || !selected) return null;
+  if (selected.type === 'object') return extractTrianglesFromGeometry(model.geometry, selected.triangles);
+  if (selected.type === 'face') return extractTrianglesFromGeometry(model.geometry, selected.region.triangles);
+  return null;
+}
+
+function exportStl() {
+  if (!model) return;
+  exportGeometryAsStl(model.geometry, `${sanitizeFileBase(currentFileName)}-modified.stl`);
+}
+
+function exportObj() {
+  if (!model) return;
+  exportGeometryAsObj(model.geometry, `${sanitizeFileBase(currentFileName)}-modified.obj`);
+}
+
+function exportSelection(format = 'stl') {
+  const geometry = selectedGeometryForExport();
+  if (!geometry) {
+    setStatus('Seleziona una faccia o un corpo prima di esportare la selezione.');
+    return;
+  }
+  const objectName = selected.type === 'object' && selected.objectIndex !== null
+    ? objectItems[selected.objectIndex]?.name
+    : 'selection';
+  const base = `${sanitizeFileBase(currentFileName)}-${sanitizeFileBase(objectName, 'selection')}`;
+  if (format === 'obj') exportGeometryAsObj(geometry, `${base}.obj`);
+  else exportGeometryAsStl(geometry, `${base}.stl`);
+  geometry.dispose();
+}
+
+function geometryToProjectPositions(geometry) {
+  return Array.from(geometry.getAttribute('position').array);
+}
+
+function projectGeometryFromPositions(positions) {
+  if (!Array.isArray(positions) || positions.length < 9 || positions.length % 9 !== 0) {
+    throw new Error('Invalid project geometry.');
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.computeVertexNormals();
+  geometry.computeBoundingBox();
+  geometry.computeBoundingSphere();
+  return geometry;
+}
+
+function vectorToArray(vector) {
+  return [vector.x, vector.y, vector.z];
+}
+
+function vectorFromArray(value, fallback = new THREE.Vector3()) {
+  return Array.isArray(value) && value.length >= 3
+    ? new THREE.Vector3(Number(value[0]) || 0, Number(value[1]) || 0, Number(value[2]) || 0)
+    : fallback.clone();
+}
+
+function serializeGuides() {
+  return {
+    edges: sketchEdges.map((edge) => ({
+      start: vectorToArray(edge.start),
+      end: vectorToArray(edge.end),
+      axis: edge.axis ?? null,
+    })),
+    faces: sketchFaces.map((face) => ({
+      points: face.points.map(vectorToArray),
+    })),
+  };
+}
+
+function restoreGuides(guides = {}) {
+  sketchPoints = [];
+  sketchClosed = false;
+  sketchEdges = Array.isArray(guides.edges)
+    ? guides.edges.map((edge) => {
+        const start = vectorFromArray(edge.start);
+        const end = vectorFromArray(edge.end);
+        return {
+          start,
+          end,
+          axis: Number.isInteger(edge.axis) ? edge.axis : null,
+          key: sketchEdgeKey(start, end),
+        };
+      })
+    : [];
+  sketchFaces = Array.isArray(guides.faces)
+    ? guides.faces.map((face) => {
+        const points = Array.isArray(face.points) ? face.points.map((point) => vectorFromArray(point)) : [];
+        return {
+          points,
+          key: points.map(sketchPointKey).join('|'),
+        };
+      }).filter((face) => face.points.length >= 3)
+    : [];
+  drawSketchPreview();
+  updateSketchApplyState();
+}
+
+function projectPayload() {
+  if (!model) return null;
+  return {
+    version: 1,
+    name: sanitizeFileBase(currentFileName),
+    units: 'mm',
+    sourceStlName,
+    currentFileName,
+    savedAt: new Date().toISOString(),
+    camera: {
+      position: vectorToArray(camera.position),
+      target: vectorToArray(controls.target),
+      up: vectorToArray(camera.up),
+    },
+    objects: objectItems.map((item) => ({
+      name: item.name,
+      triangleCount: item.triangles.length,
+    })),
+    guides: serializeGuides(),
+    geometry: {
+      type: 'triangle-position-float32',
+      positions: geometryToProjectPositions(model.geometry),
+    },
+  };
+}
+
+function saveProject() {
+  const project = projectPayload();
+  if (!project) return;
+  const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
+  const filename = `${sanitizeFileBase(project.name)}.forma3d.json`;
+  downloadBlob(blob, filename);
+  setStatus(`Progetto salvato: ${filename}.`);
+}
+
+async function openProject(file) {
+  try {
+    setStatus('Apertura progetto Forma3D...');
+    const project = JSON.parse(await file.text());
+    if (!project || project.version !== 1) throw new Error('Unsupported project version.');
+    const geometry = projectGeometryFromPositions(project.geometry?.positions);
+    for (const item of undoStack) item.dispose();
+    for (const item of redoStack) item.dispose();
+    undoStack.length = 0;
+    redoStack.length = 0;
+    objectNames = Array.isArray(project.objects)
+      ? project.objects.map((item, index) => item.name || objectDefaultName(index))
+      : [];
+    setModelGeometry(geometry, false, { preserveSketch: true });
+    restoreGuides(project.guides);
+    currentFileName = project.currentFileName || file.name;
+    sourceStlName = project.sourceStlName || currentFileName;
+    ui.fileName.textContent = currentFileName;
+    if (project.camera) {
+      camera.position.copy(vectorFromArray(project.camera.position, camera.position));
+      camera.up.copy(vectorFromArray(project.camera.up, camera.up));
+      controls.target.copy(vectorFromArray(project.camera.target, controls.target));
+      controls.update();
+    } else {
+      fitView();
+    }
+    updateHistoryButtons();
+    setStatus(`Progetto ${file.name} aperto.`);
+  } catch (error) {
+    console.error(error);
+    setStatus('Il progetto Forma3D non e leggibile.');
+  }
 }
 
 function resize() {
@@ -88,9 +276,18 @@ ui.fileInput.addEventListener('change', (event) => {
   if (file) openStl(file);
   event.target.value = '';
 });
+ui.openProjectButton.addEventListener('click', () => ui.projectInput.click());
+ui.projectInput.addEventListener('change', (event) => {
+  const [file] = event.target.files;
+  if (file) openProject(file);
+  event.target.value = '';
+});
 ui.removeModelButton.addEventListener('click', removeCurrentModel);
 ui.repairModelButton.addEventListener('click', repairCurrentMesh);
 ui.exportButton.addEventListener('click', exportStl);
+ui.exportObjButton.addEventListener('click', exportObj);
+ui.exportSelectionButton.addEventListener('click', () => exportSelection('stl'));
+ui.saveProjectButton.addEventListener('click', saveProject);
 ui.optionsMenuButton.addEventListener('click', () => {
   const nextHidden = !ui.optionsMenu.hidden;
   ui.optionsMenu.hidden = nextHidden;

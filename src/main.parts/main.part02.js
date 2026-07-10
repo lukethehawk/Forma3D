@@ -191,9 +191,41 @@ function updateEdges() {
 function updateModelActions() {
   const hasModel = Boolean(model);
   ui.exportButton.disabled = !hasModel;
+  ui.exportObjButton.disabled = !hasModel;
+  ui.exportSelectionButton.disabled = !hasModel || !selected;
+  ui.saveProjectButton.disabled = !hasModel;
   ui.repairModelButton.disabled = !hasModel;
   ui.removeModelButton.disabled = !hasModel;
   if (ui.emptyState) ui.emptyState.hidden = hasModel;
+}
+
+function objectDefaultName(index) {
+  return currentLanguage === 'en' ? `Body ${index + 1}` : `Corpo ${index + 1}`;
+}
+
+function objectIndexForTriangles(triangles) {
+  const source = new Set(triangles);
+  return objectItems.findIndex((item) =>
+    item.triangles.length === triangles.length
+    && item.triangles.every((triangle) => source.has(triangle)));
+}
+
+function refreshObjectItems() {
+  if (!model) {
+    objectItems = [];
+    objectNames = [];
+    return;
+  }
+
+  const previousNames = objectNames.slice();
+  const components = collectConnectedComponents(model.geometry);
+  objectItems = components.map((component, index) => ({
+    index,
+    id: `body-${index}`,
+    name: previousNames[index] || objectDefaultName(index),
+    triangles: component.triangles,
+  }));
+  objectNames = objectItems.map((item) => item.name);
 }
 
 function setModelGeometry(geometry, recordHistory = true, options = {}) {
@@ -232,6 +264,7 @@ function setModelGeometry(geometry, recordHistory = true, options = {}) {
   model = new THREE.Mesh(geometry, modelMaterial);
   scene.add(model);
   snapPoints = collectDisplaySnapPoints(model.geometry, MODEL_EDGE_ANGLE);
+  refreshObjectItems();
   updateEdges();
   updateModelActions();
   if (preserveSketch && (sketchEdges.length || sketchFaces.length || sketchPoints.length)) {
@@ -304,8 +337,10 @@ function clearCurrentModel(message = 'Modello rimosso. Apri un STL o crea una nu
   snapPoints = [];
   clearSnapIndicator();
   currentFileName = 'modello-senza-titolo.stl';
+  sourceStlName = 'modello-senza-titolo.stl';
   ui.fileName.textContent = 'Nessun modello';
   updateModelActions();
+  refreshObjectItems();
   updateHistoryButtons();
   setTool('select');
   setStatus(message);
@@ -1221,11 +1256,10 @@ function pickSelectableRegion(clientX, clientY) {
   return best;
 }
 
-function selectObjectComponent(seedTriangle, point) {
+function setSelectedObjectFromTriangles(triangles, point, objectIndex = null) {
   if (!model) return false;
-  const component = findConnectedComponent(model.geometry, seedTriangle);
-  const box = selectionBoxFromTriangles(model.geometry, component.triangles);
-  if (!component.triangles.length || !box) {
+  const box = selectionBoxFromTriangles(model.geometry, triangles);
+  if (!triangles.length || !box) {
     clearSelection();
     return false;
   }
@@ -1234,18 +1268,34 @@ function selectObjectComponent(seedTriangle, point) {
   selected = {
     type: 'object',
     point: point?.clone?.() ?? box.getCenter(new THREE.Vector3()),
-    triangles: component.triangles,
+    triangles,
+    objectIndex,
   };
 
   highlight = createSelectionBoxOverlay(box);
   highlight.renderOrder = 3;
   addTransientOverlay(highlight, 'selection');
+  updateModelActions();
   ui.selectionLabel.textContent = t('Oggetto selezionato');
   ui.selectionDetail.textContent = t('Corpo selezionato. Canc lo rimuove, Trasforma lo modifica.');
-  ui.measureValue.value = `${component.triangles.length} ${t('facce')}`;
+  ui.measureValue.value = `${triangles.length} ${t('facce')}`;
   ui.inspector.classList.add('open');
   setStatus(t('Oggetto selezionato'));
   return true;
+}
+
+function selectObjectComponent(seedTriangle, point) {
+  if (!model) return false;
+  const component = findConnectedComponent(model.geometry, seedTriangle);
+  const objectIndex = objectIndexForTriangles(component.triangles);
+  return setSelectedObjectFromTriangles(component.triangles, point, objectIndex >= 0 ? objectIndex : null);
+}
+
+function selectObjectByIndex(index) {
+  const item = objectItems[index];
+  if (!item) return false;
+  setSelectionMode('object', { clear: false, refresh: false });
+  return setSelectedObjectFromTriangles(item.triangles, null, index);
 }
 
 function selectObjectAt(clientX, clientY) {
@@ -1281,6 +1331,7 @@ function selectFaceRegion(region, point, options = {}) {
   ui.selectionDetail.textContent = t(detail);
   ui.measureValue.value = `${region.triangles.length} ${t('facce')}`;
   ui.inspector.classList.add('open');
+  updateModelActions();
   setStatus(t(status));
 }
 

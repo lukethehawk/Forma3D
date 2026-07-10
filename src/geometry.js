@@ -639,6 +639,34 @@ export function deleteTrianglesFromGeometry(geometry, triangleIndexes) {
   return result;
 }
 
+export function extractTrianglesFromGeometry(geometry, triangleIndexes) {
+  const position = geometry.getAttribute('position');
+  const index = geometry.getIndex();
+  const selected = new Set(triangleIndexes);
+  const positions = [];
+  const point = new THREE.Vector3();
+  const triangleTotal = triangleCount(geometry);
+
+  for (let triangle = 0; triangle < triangleTotal; triangle += 1) {
+    if (!selected.has(triangle)) continue;
+
+    for (let corner = 0; corner < 3; corner += 1) {
+      const vertex = index ? index.getX(triangle * 3 + corner) : triangle * 3 + corner;
+      point.fromBufferAttribute(position, vertex);
+      positions.push(point.x, point.y, point.z);
+    }
+  }
+
+  if (!positions.length) return null;
+
+  const result = new THREE.BufferGeometry();
+  result.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  result.computeVertexNormals();
+  result.computeBoundingBox();
+  result.computeBoundingSphere();
+  return result;
+}
+
 export function combineGeometries(geometries) {
   const positions = [];
   const point = new THREE.Vector3();
@@ -705,6 +733,48 @@ export function findConnectedComponent(geometry, seedTriangle, tolerance = DEFAU
   return {
     triangles: queue,
   };
+}
+
+export function collectConnectedComponents(geometry, tolerance = DEFAULT_TOLERANCE) {
+  const triangleTotal = triangleCount(geometry);
+  const edgeMap = new Map();
+
+  for (let triangle = 0; triangle < triangleTotal; triangle += 1) {
+    const points = [0, 1, 2].map((corner) => vertexAt(geometry, triangle, corner, new THREE.Vector3()));
+    for (const [start, end] of [[0, 1], [1, 2], [2, 0]]) {
+      const key = edgeKey(points[start], points[end], tolerance);
+      if (!edgeMap.has(key)) edgeMap.set(key, []);
+      edgeMap.get(key).push(triangle);
+    }
+  }
+
+  const visited = new Set();
+  const components = [];
+  for (let seed = 0; seed < triangleTotal; seed += 1) {
+    if (visited.has(seed)) continue;
+
+    const triangles = [];
+    const queue = [seed];
+    visited.add(seed);
+
+    for (let index = 0; index < queue.length; index += 1) {
+      const triangle = queue[index];
+      triangles.push(triangle);
+      const points = [0, 1, 2].map((corner) => vertexAt(geometry, triangle, corner, new THREE.Vector3()));
+      for (const [start, end] of [[0, 1], [1, 2], [2, 0]]) {
+        const key = edgeKey(points[start], points[end], tolerance);
+        for (const neighbor of edgeMap.get(key) ?? []) {
+          if (visited.has(neighbor)) continue;
+          visited.add(neighbor);
+          queue.push(neighbor);
+        }
+      }
+    }
+
+    components.push({ triangles });
+  }
+
+  return components;
 }
 
 export function transformTrianglesInGeometry(geometry, triangleIndexes, matrix) {

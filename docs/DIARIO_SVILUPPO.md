@@ -1,6 +1,6 @@
 # Development Diary - Forma3D
 
-Last updated: 2026-07-09
+Last updated: 2026-07-10
 
 This document is the technical memory of Forma3D. Read it together with
 `README.md` before making changes, especially when touching mesh logic, tool
@@ -9,15 +9,15 @@ state, selection, booleans, snapping or export.
 > Italian version / historical notes continue below after the English primary
 > section.
 
-## Current Operating Notes - 2026-07-09
+## Current Operating Notes - 2026-07-10
 
 Recent work consolidated Forma3D as an STL mesh editor with separate face and
 connected-body workflows:
 
 - English is the primary UI and documentation language; Italian remains
   selectable in the app and documented below.
-- `Options` contains language selection, quick help, `Repair mesh` and STL
-  export.
+- `Options` contains language selection, quick help, `Repair mesh`, project
+  open/save, STL export, OBJ export and selection export.
 - `Select` uses single click for planar face selection and double click for the
   clicked connected body.
 - Object selection no longer selects the whole STL mesh. It uses
@@ -35,6 +35,10 @@ connected-body workflows:
   centered without being excessively zoomed.
 - Gear creation was made browser-safe: gears no longer use heavy booleans, are
   appended as separate bodies, are capped at 80 teeth, and use debounced preview.
+- Forma3D now has a local project format: `.forma3d.json` stores metadata,
+  camera, connected-body metadata, construction guides and triangle geometry.
+- Export paths now include sanitized file names, full-model STL, full-model OBJ
+  and STL export for the selected face/body.
 
 Working rule agreed with the user: after a complete change, if checks pass,
 commit and push to GitHub unless explicitly told not to.
@@ -49,6 +53,7 @@ The project does not try to rebuild a full parametric CAD model from STL. STL is
 a triangle mesh, so the app focuses on practical mesh operations:
 
 - STL import/export.
+- `.forma3d.json` project save/open for local state.
 - 3D view with orbit, pan, zoom and quick views.
 - Planar face selection as connected coplanar regions.
 - Connected body selection by double click.
@@ -63,6 +68,7 @@ a triangle mesh, so the app focuses on practical mesh operations:
 - Undo/redo.
 - Remove current model.
 - `Delete` for previews, guides, selected faces and selected bodies.
+- STL/OBJ full export and STL selection export.
 
 ## Technical Stack
 
@@ -71,7 +77,7 @@ a triangle mesh, so the app focuses on practical mesh operations:
 - Desktop shell: Electron.
 - 3D rendering: Three.js.
 - Camera controls: Three.js `OrbitControls`.
-- STL: `STLLoader` and `STLExporter`.
+- STL/OBJ: `STLLoader`, `STLExporter` and `OBJExporter`.
 - Mesh booleans: `three-bvh-csg`.
 - Tests: `node --test`.
 - Web deploy: GitHub Actions + GitHub Pages, publishing `dist`.
@@ -135,7 +141,11 @@ contains:
 - language selection;
 - quick help tooltip;
 - `Repair mesh`;
-- `Export STL`.
+- `Open project`;
+- `Save project`;
+- `Export STL`;
+- `Export OBJ`;
+- `Export selection`.
 
 Language is stored in `localStorage` as `forma3d-language`. Static labels are
 translated through `staticTranslations`; topbar/tool names come from
@@ -154,6 +164,9 @@ Core controller state:
 - `selectionMode`: `face` or `object`, synchronized with the inspector select.
 - `activeTool`: current tool.
 - `currentFileName`: export base name.
+- `sourceStlName`: original STL/project source name stored in project files.
+- `objectItems`: connected-body metadata rebuilt from geometry components.
+- `objectNames`: body names restored from project files where possible.
 - `undoStack` / `redoStack`: cloned `BufferGeometry` snapshots.
 - `snapPoints`: structural vertices, midpoints and face centers.
 - temporary tool states: hole, move hole, primitives, cut, text, sketch and
@@ -180,12 +193,30 @@ Display edges are generated only under `MAX_EDGE_TRIANGLES`. Coplanar
 triangulation diagonals are hidden while real creases and useful open contours
 remain visible.
 
-## STL Import and Export
+## STL Import, Project Format and Export
 
 `openStl(file)` parses STL, centers the mesh in X/Y, moves minimum Z to zero,
 clears history, calls `setModelGeometry()` and fits the view.
 
-`exportStl()` writes binary STL as `<name>-modificato.stl`.
+Project files are local JSON documents with extension `.forma3d.json`. Version
+1 stores:
+
+- `version`, `name`, `units`, `sourceStlName`, `currentFileName`, `savedAt`;
+- camera position, target and up vector;
+- connected-body names and triangle counts;
+- construction guide edges/faces;
+- geometry as a flat triangle position array.
+
+The project format is intentionally simple and local-first. It is not a
+parametric CAD history; it restores the current mesh/editor state.
+
+`exportStl()` writes binary STL as `<sanitized-name>-modified.stl`.
+`exportObj()` writes OBJ as `<sanitized-name>-modified.obj`.
+`exportSelection()` extracts the selected face/body triangles and writes a
+selection STL. Object-row export writes that body as STL.
+
+`sanitizeFileBase()` removes accents, spaces and unsafe characters so downloads
+are predictable across browsers and operating systems.
 
 STL has no unit metadata; Forma3D treats units as millimeters.
 
@@ -225,6 +256,18 @@ Object selection:
 
 This matters because appended primitive bodies, gears and other separate shells
 can live inside the same STL mesh.
+
+## Connected Body Metadata
+
+`refreshObjectItems()` calls `collectConnectedComponents(model.geometry)` and
+stores every connected triangle island in `objectItems`. This is currently an
+internal metadata layer used by project save/open and selection export, not a
+visible object manager.
+
+Since STL has no persistent object IDs, names are index-based and may shift
+after destructive topology changes. The next UI iteration should expose this as
+a compact collapsible object menu from the left toolbar, not as a permanent
+viewport panel.
 
 ## Push/Pull
 
@@ -330,10 +373,11 @@ coplanar face centers, avoiding noisy STL triangulation diagonals.
 ## Future Improvements
 
 - Hole filling with preview and strategy choice.
-- Object/layer panel for separate connected bodies.
+- Compact collapsible Objects menu from the left toolbar.
+- Stable object IDs and a richer scene model beyond connected-component indexes.
 - 3D transform gizmo.
 - More advanced snaps: perpendiculars, intersections and persistent constraints.
-- Internal JSON project format beyond STL.
+- Richer project format with history, thumbnails and per-body metadata.
 - Browser/Electron end-to-end tests.
 - Main-controller refactor into `model-state`, `tools`, `overlays`,
   `history`, `ui-bindings`.
@@ -357,21 +401,22 @@ coplanar face centers, avoiding noisy STL triangulation diagonals.
 
 # Diario di sviluppo - Forma3D
 
-Ultimo aggiornamento: 2026-07-09
+Ultimo aggiornamento: 2026-07-10
 
 Questo file e' la memoria tecnica del progetto. Prima di fare nuove modifiche
 conviene leggerlo insieme a `README.md`, per ricordare perche certe scelte sono
 state fatte e dove intervenire senza rompere il flusso esistente.
 
-## Aggiornamento operativo 2026-07-09
+## Aggiornamento operativo 2026-07-10
 
 Le ultime sessioni hanno consolidato l'app come editor STL con strumenti
 separati per facce e corpi connessi. I punti piu importanti da ricordare prima
 di intervenire ancora:
 
 - la lingua primaria e' inglese, con italiano selezionabile dal menu `Options`;
-- il menu `Options` contiene lingua, guida rapida, `Repair mesh` ed
-  esportazione STL;
+- il menu `Options` contiene lingua, guida rapida, `Repair mesh`,
+  apertura/salvataggio progetto, esportazione STL, esportazione OBJ ed export
+  della selezione;
 - `Select` usa click singolo per selezionare una faccia e doppio click per
   selezionare il corpo connesso cliccato;
 - la selezione oggetto non prende piu' tutta la mesh STL: usa
@@ -388,8 +433,12 @@ di intervenire ancora:
 - `fitView()` usa il FOV della camera e un margine piu ampio, cosi il primo
   oggetto creato resta centrato e non troppo zoomato;
 - l'ingranaggio e' stato reso sicuro per il browser: non usa piu booleane
-  pesanti, viene aggiunto come corpo separato, ha limite a 80 denti e preview
-  debounced.
+  pesanti, viene aggiunto come corpo separato, ha limite a 80 denti e anteprima
+  debounced;
+- il formato `.forma3d.json` salva stato locale del progetto: metadati, camera,
+  metadati dei corpi connessi, guide e geometria triangolare;
+- l'export ora include nomi file ripuliti, STL completo, OBJ completo e STL
+  della selezione.
 
 Regola di lavoro concordata: dopo una modifica completa, se `npm test` e
 `npm run build` passano, fare commit e push su GitHub salvo richiesta contraria.
@@ -402,7 +451,8 @@ modifiche semplici a modelli da stampa 3D senza caricare file online.
 Il progetto non prova a ricostruire un CAD parametrico completo da STL. Tratta
 il file come mesh triangolare e offre strumenti pratici:
 
-- importazione ed esportazione STL;
+- importazione/esportazione STL e OBJ;
+- salvataggio/apertura progetto locale `.forma3d.json`;
 - vista 3D con orbita, pan, zoom e viste rapide;
 - selezione di superfici piane riconosciute come regioni complanari;
 - selezione di corpi connessi tramite doppio click;
@@ -418,6 +468,7 @@ il file come mesh triangolare e offre strumenti pratici:
 - annulla/ripristina;
 - rimozione del modello corrente;
 - cancellazione con `Canc` di superfici, corpi selezionati o anteprime attive.
+- export completo STL/OBJ ed export STL della selezione.
 
 ## Stack tecnico
 
@@ -426,7 +477,7 @@ il file come mesh triangolare e offre strumenti pratici:
 - Shell desktop: Electron.
 - Rendering 3D: Three.js.
 - Controlli camera: `OrbitControls` di Three.js.
-- STL: `STLLoader` e `STLExporter`.
+- STL/OBJ: `STLLoader`, `STLExporter` e `OBJExporter`.
 - Booleane mesh: `three-bvh-csg`.
 - Test: `node --test`.
 - Deploy web: GitHub Actions + GitHub Pages, pubblicando `dist`.
@@ -506,7 +557,11 @@ La topbar mantiene `Apri STL` e `Rimuovi modello` come azioni primarie. Il menu
 - selezione lingua `Italiano` / `English`;
 - tooltip di guida rapida con click, doppio click, `Canc`, orbita e pan;
 - `Ripara mesh`;
-- `Esporta STL`.
+- `Apri progetto`;
+- `Salva progetto`;
+- `Esporta STL`;
+- `Esporta OBJ`;
+- `Esporta selezione`.
 
 La lingua primaria e' inglese. La lingua selezionata viene salvata in
 `localStorage` (`forma3d-language`). La funzione `applyLanguage(language)`
@@ -609,7 +664,7 @@ di triangolazione coplanari. Questo e' importante per i piani 2D: un cerchio
 applicato su una faccia STL deve mantenere il contorno esterno selezionabile,
 senza mostrare tutti i raggi interni della triangolazione.
 
-## Import STL
+## Import STL, formato progetto ed export
 
 `openStl(file)`:
 
@@ -625,11 +680,26 @@ senza mostrare tutti i raggi interni della triangolazione.
 L'app interpreta le unita come millimetri. STL non contiene unita reali, quindi
 questa e' una convenzione di lavoro.
 
-## Esportazione STL
+Il formato progetto locale usa file `.forma3d.json`. La versione 1 salva:
+
+- `version`, `name`, `units`, `sourceStlName`, `currentFileName`, `savedAt`;
+- posizione camera, target e vettore up;
+- nomi e numero triangoli dei corpi connessi;
+- guide di costruzione e facce guida;
+- geometria come array piatto di posizioni triangolari.
+
+Non e' una cronologia CAD parametrica: serve a riaprire lo stato locale
+dell'editor, incluse informazioni che STL non puo' contenere.
 
 `exportStl()` usa `STLExporter` in formato binario e scarica
-`<nome>-modificato.stl`. Se non c'e' modello, il pulsante Esporta viene
-disabilitato da `updateModelActions()`.
+`<nome-ripulito>-modified.stl`. `exportObj()` usa `OBJExporter` e scarica
+`<nome-ripulito>-modified.obj`. `exportSelection()` estrae i triangoli della
+faccia/corpo selezionato e scarica uno STL della sola selezione.
+
+`sanitizeFileBase()` rimuove accenti, spazi e caratteri problematici dai nomi
+file, cosi i download sono piu prevedibili tra browser e sistemi operativi.
+Se non c'e' modello, i pulsanti di export e salvataggio vengono disabilitati da
+`updateModelActions()`.
 
 ## Riparazione mesh
 
@@ -747,6 +817,18 @@ Questa logica e' fondamentale per oggetti aggiunti come corpi separati nello
 stesso STL, per esempio ingranaggi o testo/primitive accodate senza booleana.
 Prima la modalita oggetto selezionava tutto `model`; ora seleziona solo l'isola
 di triangoli cliccata.
+
+## Metadati dei corpi connessi
+
+`refreshObjectItems()` usa `collectConnectedComponents(model.geometry)` e
+salva ogni isola di triangoli connessi in `objectItems`. Per ora questo resta
+uno strato interno usato da salvataggio/apertura progetto ed export selezione,
+non un pannello visibile.
+
+Poiche STL non ha ID persistenti, i nomi sono per ora legati all'indice del
+componente e potrebbero spostarsi dopo modifiche topologiche distruttive. La
+prossima iterazione UI dovrebbe esporre questi dati come menu compatto a
+scomparsa dalla toolbar sinistra, non come pannello permanente nel viewport.
 
 ## Spingi/Tira
 
@@ -1228,11 +1310,13 @@ Shortcut principali:
 - Chiusura buchi con anteprima/conferma e scelta della strategia di riempimento.
 - Import/export STEP usando un motore CAD dedicato, se il progetto passa da
   editor mesh a ricostruzione solida.
-- Pannello livelli/oggetti se si decide di supportare piu solidi separati.
+- Menu Oggetti compatto e richiudibile dalla toolbar sinistra.
+- ID oggetto stabili e modello scena piu ricco rispetto agli indici dei
+  componenti connessi.
 - Gizmo 3D trascinabile con frecce/anelli se il pannello numerico non basta.
 - Snap avanzati successivi: endpoint di bordi ricostruiti, perpendicolari,
   intersezioni e vincoli piu persistenti.
-- Persistenza progetto in formato JSON interno, oltre a STL.
+- Formato progetto piu ricco con cronologia, miniature e metadati per corpo.
 - Test end-to-end con browser/Electron per click reali su canvas.
 - Refactor del controller principale in moduli: `model-state`, `tools`,
   `overlays`, `history`, `ui-bindings`.
@@ -1246,6 +1330,7 @@ Shortcut principali:
 5. Eseguire `npm test`.
 6. Eseguire `npm run build`.
 7. Se si tocca UI/canvas, provare anche `npm run dev` o `npm start`.
-8. Aggiornare questo diario quando cambiano logiche o decisioni importanti.
+8. Aggiornare README, diario e wiki quando cambiano logiche o comportamento.
+9. Fare commit e push dopo le verifiche, salvo richiesta contraria.
 
 </details>

@@ -2,11 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {
+  collectConnectedComponents,
   combineGeometries,
   createPushPullRegionGeometry,
   createDisplayEdgesGeometry,
   collectDisplaySnapPoints,
   deleteTrianglesFromGeometry,
+  extractTrianglesFromGeometry,
   findConnectedComponent,
   findCoplanarRegion,
   pushPullGeometry,
@@ -147,6 +149,32 @@ test('findConnectedComponent selects only the clicked separate body', () => {
   const secondComponent = findConnectedComponent(combined, firstTriangles);
   assert.equal(secondComponent.triangles.length, triangleCount(second));
   assert.equal(secondComponent.triangles.includes(0), false);
+});
+
+test('collectConnectedComponents enumerates separate bodies', () => {
+  const left = new THREE.BoxGeometry(4, 4, 4).toNonIndexed();
+  const right = new THREE.BoxGeometry(4, 4, 4).toNonIndexed();
+  right.translate(10, 0, 0);
+  const geometry = combineGeometries([left, right]);
+
+  const components = collectConnectedComponents(geometry);
+
+  assert.equal(components.length, 2);
+  assert.deepEqual(components.map((component) => component.triangles.length), [12, 12]);
+});
+
+test('extractTrianglesFromGeometry returns only the requested body', () => {
+  const left = new THREE.BoxGeometry(4, 4, 4).toNonIndexed();
+  const right = new THREE.BoxGeometry(4, 4, 4).toNonIndexed();
+  right.translate(10, 0, 0);
+  const geometry = combineGeometries([left, right]);
+  const [component] = collectConnectedComponents(geometry);
+
+  const extracted = extractTrianglesFromGeometry(geometry, component.triangles);
+
+  assert.equal(triangleCount(extracted), 12);
+  extracted.computeBoundingBox();
+  assert.ok(extracted.boundingBox.max.x < 3);
 });
 
 test('transformTrianglesInGeometry moves only selected triangles', () => {

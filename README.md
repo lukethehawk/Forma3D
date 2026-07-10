@@ -7,6 +7,7 @@
 [![App](https://img.shields.io/badge/Open-Web_App-1f83bd?style=for-the-badge)](https://lukethehawk.github.io/Forma3D/)
 [![Wiki](https://img.shields.io/badge/Open-Wiki-2e9a52?style=for-the-badge)](https://github.com/lukethehawk/Forma3D/wiki)
 [![Docs](https://img.shields.io/badge/Read-Development_Diary-e46f2b?style=for-the-badge)](docs/DIARIO_SVILUPPO.md)
+[![License](https://img.shields.io/badge/License-MIT-172637?style=for-the-badge)](LICENSE)
 
 ![Three.js](https://img.shields.io/badge/Three.js-3D-black?logo=three.js)
 ![Vite](https://img.shields.io/badge/Vite-build-646cff?logo=vite&logoColor=white)
@@ -67,6 +68,12 @@ npm test
 npm run build
 ```
 
+### License
+
+Forma3D is released under the [MIT License](LICENSE). Third-party licenses and
+referenced project notices are tracked in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
 ### Core Workflow
 
 | Action | Use |
@@ -75,8 +82,10 @@ npm run build
 | Double click in `Select` or `Transform` | Select the clicked connected body |
 | `Push/Pull` | Extrude or recess selected planar faces |
 | `Transform` | Move, rotate or scale only the selected body |
+| `Save project` / `Open project` | Store and restore `.forma3d.json` project state |
 | `Repair mesh` | Weld vertices, remove bad triangles and planarize near-flat areas |
-| `Export STL` | Download the edited STL |
+| `Export STL` / `Export OBJ` | Download the edited mesh |
+| `Export selection` | Download only the selected face or body as STL |
 
 ### Shortcuts
 
@@ -117,7 +126,6 @@ Navigation:
   selected as faces so they can be pushed/pulled immediately.
 - `Transform`: automatically switches to Object mode and edits only the selected
   connected body.
-
 </details>
 
 <details>
@@ -177,6 +185,17 @@ Line guides persist as construction geometry and can create closed faces.
 | `src/hole-detection.js` | Cylindrical hole detection |
 | `test/*.test.js` | Unit tests |
 | `docs/DIARIO_SVILUPPO.md` | Technical development diary |
+
+### Project Files and Export
+
+Forma3D keeps STL as the main interchange format, but `Save project` writes a
+local `.forma3d.json` file with project metadata: app version, model name,
+units, source STL name, camera, connected-body metadata, construction guides and
+triangle geometry. `Open project` restores that state without uploading
+anything.
+
+Exports include the full model as STL, the full model as OBJ, and the current
+selection as STL. File names are sanitized from the current model/project name.
 
 ### GitHub Pages
 
@@ -241,6 +260,12 @@ npm test
 npm run build
 ```
 
+### Licenza
+
+Forma3D e' rilasciato con [licenza MIT](LICENSE). Le licenze dei progetti terzi
+e le note sui pattern di riferimento sono in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
 ### Flusso principale
 
 | Azione | Uso |
@@ -249,8 +274,10 @@ npm run build
 | Doppio click in `Select` o `Transform` | Seleziona il corpo connesso cliccato |
 | `Push/Pull` | Estrude o incide facce piane selezionate |
 | `Transform` | Sposta, ruota o scala solo il corpo selezionato |
+| `Save project` / `Open project` | Salva e riapre lo stato `.forma3d.json` |
 | `Repair mesh` | Salda vertici, rimuove triangoli difettosi e planarizza aree quasi piatte |
-| `Export STL` | Scarica lo STL modificato |
+| `Export STL` / `Export OBJ` | Scarica la mesh modificata |
+| `Export selection` | Scarica solo la faccia o il corpo selezionato come STL |
 
 ### Scorciatoie
 
@@ -292,7 +319,6 @@ Navigazione:
   selezionati automaticamente come facce.
 - `Transform`: passa automaticamente a Object mode e modifica solo il corpo
   connesso selezionato.
-
 </details>
 
 <details>
@@ -352,6 +378,18 @@ Le linee restano come guide di costruzione e possono creare facce chiuse.
 | `src/hole-detection.js` | Riconoscimento fori cilindrici |
 | `test/*.test.js` | Test unitari |
 | `docs/DIARIO_SVILUPPO.md` | Diario tecnico di sviluppo |
+
+### File progetto ed export
+
+Forma3D mantiene STL come formato principale di scambio, ma `Save project`
+scrive un file locale `.forma3d.json` con metadati di progetto: versione app,
+nome modello, unita, STL sorgente, camera, metadati dei corpi connessi, guide di
+costruzione e geometria triangolare. `Open project` ripristina quello stato
+senza caricare nulla online.
+
+Gli export includono il modello completo come STL, il modello completo come OBJ
+e la selezione corrente come STL. I nomi file vengono ripuliti a partire dal
+nome modello/progetto corrente.
 
 ### GitHub Pages
 

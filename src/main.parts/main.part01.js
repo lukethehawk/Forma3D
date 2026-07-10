@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { STLExporter } from 'three/addons/exporters/STLExporter.js';
+import { OBJExporter } from 'three/addons/exporters/OBJExporter.js';
 import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { ADDITION, Brush, Evaluator, SUBTRACTION } from 'three-bvh-csg';
 import helvetikerRegularUrl from 'three/examples/fonts/helvetiker_regular.typeface.json?url';
@@ -17,12 +18,14 @@ import droidSerifRegularUrl from 'three/examples/fonts/droid/droid_serif_regular
 import droidSerifBoldUrl from 'three/examples/fonts/droid/droid_serif_bold.typeface.json?url';
 import droidMonoRegularUrl from 'three/examples/fonts/droid/droid_sans_mono_regular.typeface.json?url';
 import {
+  collectConnectedComponents,
   collectDisplaySnapPoints,
   combineGeometries,
   createDisplayEdgesGeometry,
   createPushPullRegionGeometry,
   createRegionGeometry,
   deleteTrianglesFromGeometry,
+  extractTrianglesFromGeometry,
   findConnectedComponent,
   findCoplanarRegion,
   pushPullGeometry,
@@ -138,6 +141,9 @@ let activeTool = 'select';
 let selectionMode = localStorage.getItem('forma3d-selection-mode') ?? 'face';
 let currentLanguage = 'en';
 let currentFileName = 'modello-esempio.stl';
+let sourceStlName = 'modello-esempio.stl';
+let objectItems = [];
+let objectNames = [];
 let pointerDown = null;
 let measurementStart = null;
 let measurementEnd = null;
@@ -230,12 +236,17 @@ let renderRequested = false;
 
 const ui = {
   exportButton: document.querySelector('#export-file'),
+  exportObjButton: document.querySelector('#export-obj'),
+  exportSelectionButton: document.querySelector('#export-selection'),
+  openProjectButton: document.querySelector('#open-project'),
+  saveProjectButton: document.querySelector('#save-project'),
   repairModelButton: document.querySelector('#repair-model'),
   removeModelButton: document.querySelector('#remove-model'),
   optionsMenuButton: document.querySelector('#options-menu-button'),
   optionsMenu: document.querySelector('#options-menu'),
   languageSelect: document.querySelector('#language-select'),
   fileInput: document.querySelector('#file-input'),
+  projectInput: document.querySelector('#project-input'),
   fileName: document.querySelector('#file-name'),
   status: document.querySelector('#status'),
   hint: document.querySelector('#hint'),
@@ -430,7 +441,11 @@ const languageText = {
     options: 'Opzioni',
     language: 'Lingua',
     repair: 'Ripara mesh',
+    openProject: 'Apri progetto',
+    saveProject: 'Salva progetto',
     export: 'Esporta STL',
+    exportObj: 'Esporta OBJ',
+    exportSelection: 'Esporta selezione',
     select: 'Seleziona',
     pushpull: 'Spingi/Tira',
     solids: 'Solidi',
@@ -460,7 +475,11 @@ const languageText = {
     options: 'Options',
     language: 'Language',
     repair: 'Repair mesh',
+    openProject: 'Open project',
+    saveProject: 'Save project',
     export: 'Export STL',
+    exportObj: 'Export OBJ',
+    exportSelection: 'Export selection',
     select: 'Select',
     pushpull: 'Push/Pull',
     solids: 'Solids',
@@ -905,7 +924,11 @@ function applyLanguage(language) {
   setButtonHtml('#options-menu-button', '', dictionary.options, true);
   setText('label[for="language-select"]', dictionary.language);
   setButtonHtml('#repair-model', 'R', dictionary.repair);
+  setButtonHtml('#open-project', 'P', dictionary.openProject);
+  setButtonHtml('#save-project', 'S', dictionary.saveProject);
   setButtonHtml('#export-file', 'E', dictionary.export);
+  setButtonHtml('#export-obj', 'O', dictionary.exportObj);
+  setButtonHtml('#export-selection', 'X', dictionary.exportSelection);
   setText('[data-menu-label="solids"]', dictionary.solids);
   setText('[data-menu-label="booleans"]', dictionary.booleans);
   setText('[data-menu-label="twoD"]', dictionary.twoD);
@@ -1041,6 +1064,7 @@ function clearSelection() {
     ? t('Clicca un corpo per selezionarlo.')
     : t('Clicca una superficie del modello.');
   ui.measureValue.value = '-- mm';
+  updateModelActions();
 }
 
 function updateMeasureBoxMode() {
