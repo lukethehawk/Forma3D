@@ -403,6 +403,10 @@ button {
   margin: 6px 8px;
 }
 
+.tool-divider-bottom {
+  margin-top: auto;
+}
+
 #viewport {
   min-width: 0;
   position: relative;
@@ -498,6 +502,110 @@ button {
 
 .axis.z {
   color: #2477bd;
+}
+
+.objects-drawer {
+  width: 268px;
+  max-width: calc(100% - 28px);
+  max-height: calc(100% - 28px);
+  position: absolute;
+  z-index: 8;
+  left: 14px;
+  bottom: 14px;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 10px;
+  padding: 13px;
+  border: 1px solid #c8ced0;
+  border-radius: 8px;
+  background: rgb(255 255 255 / 96%);
+  box-shadow: 0 10px 28px rgb(32 42 47 / 18%);
+  color: #243139;
+  transform: translateX(calc(-100% - 26px));
+  transition: transform 160ms ease;
+}
+
+.objects-drawer.open {
+  transform: translateX(0);
+}
+
+.objects-drawer-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.objects-drawer-heading strong {
+  display: block;
+  font-size: 20px;
+}
+
+.objects-drawer-summary {
+  display: flex;
+  gap: 6px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.objects-list {
+  min-height: 0;
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.object-row {
+  display: grid;
+  gap: 5px;
+  padding: 8px;
+  border: 1px solid #d7dcde;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.object-row.selected {
+  border-color: var(--blue);
+  box-shadow: inset 3px 0 var(--blue);
+}
+
+.object-row input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #bec8cc;
+  border-radius: 4px;
+  padding: 5px 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.object-row small {
+  color: var(--ink-soft);
+  font-size: 11px;
+}
+
+.object-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.object-actions button {
+  min-width: 0;
+  padding: 5px 4px;
+  border: 1px solid #b8c3c7;
+  border-radius: 4px;
+  background: #f7f9fa;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.object-actions button:hover {
+  background: #eaf1f5;
 }
 
 .inspector {
@@ -1026,7 +1134,8 @@ button {
 @media (max-width: 760px) {
   .topbar-file-name,
   .button-icon,
-  .view-cube {
+  .view-cube,
+  .objects-drawer {
     display: none;
   }
 

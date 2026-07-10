@@ -144,6 +144,7 @@ let currentFileName = 'modello-esempio.stl';
 let sourceStlName = 'modello-esempio.stl';
 let objectItems = [];
 let objectNames = [];
+let objectsDrawerOpen = false;
 let pointerDown = null;
 let measurementStart = null;
 let measurementEnd = null;
@@ -427,6 +428,11 @@ const ui = {
   measureValue: document.querySelector('#measure-value'),
   undo: document.querySelector('#undo'),
   redo: document.querySelector('#redo'),
+  objectsToggle: document.querySelector('#objects-toggle'),
+  objectsDrawer: document.querySelector('#objects-drawer'),
+  objectsClose: document.querySelector('#objects-close'),
+  objectsList: document.querySelector('#objects-list'),
+  objectsCount: document.querySelector('#objects-count'),
 };
 
 function setStatus(message) {
@@ -467,6 +473,7 @@ const languageText = {
     orbit: 'Orbita',
     pan: 'Panoramica',
     zoomfit: 'Inquadra',
+    objects: 'Oggetti',
   },
   en: {
     title: 'Forma3D - STL Editor',
@@ -501,6 +508,7 @@ const languageText = {
     orbit: 'Orbit',
     pan: 'Pan',
     zoomfit: 'Zoom fit',
+    objects: 'Objects',
   },
 };
 
@@ -528,6 +536,17 @@ const staticTranslations = {
     'Orbita (O)': 'Orbit (O)',
     Panoramica: 'Pan',
     'Inquadra tutto': 'Zoom to fit',
+    Oggetti: 'Objects',
+    'Pannello oggetti': 'Objects panel',
+    MODEL: 'MODEL',
+    Objects: 'Objects',
+    'connected bodies': 'connected bodies',
+    'No bodies': 'No bodies',
+    'Nessun corpo': 'No bodies',
+    'Nome oggetto': 'Object name',
+    Select: 'Select',
+    Export: 'Export',
+    Delete: 'Delete',
     'Area di modellazione 3D': '3D modeling area',
     'Viste modello': 'Model views',
     Chiudi: 'Close',
@@ -862,6 +881,8 @@ function translateStaticText(language) {
     '#selection-info strong',
     '.options-tooltip strong',
     '.options-tooltip span',
+    '.objects-drawer-heading strong',
+    '.objects-drawer-summary span',
     '#status',
   ].join(','));
   elements.forEach((element) => {
@@ -952,6 +973,8 @@ function applyLanguage(language) {
     'pan',
     'zoomfit',
   ].forEach((tool) => setToolText(tool, dictionary[tool]));
+  setText('#objects-toggle span', dictionary.objects);
+  renderObjectsDrawer();
   updateInspector();
 }
 
@@ -1065,6 +1088,7 @@ function clearSelection() {
     : t('Clicca una superficie del modello.');
   ui.measureValue.value = '-- mm';
   updateModelActions();
+  renderObjectsDrawer();
 }
 
 function updateMeasureBoxMode() {

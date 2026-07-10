@@ -125,6 +125,15 @@ function exportSelection(format = 'stl') {
   geometry.dispose();
 }
 
+function exportObjectByIndex(index) {
+  const item = objectItems[index];
+  if (!item || !model) return;
+  const geometry = extractTrianglesFromGeometry(model.geometry, item.triangles);
+  if (!geometry) return;
+  exportGeometryAsStl(geometry, `${sanitizeFileBase(currentFileName)}-${sanitizeFileBase(item.name)}.stl`);
+  geometry.dispose();
+}
+
 function geometryToProjectPositions(geometry) {
   return Array.from(geometry.getAttribute('position').array);
 }
@@ -288,12 +297,41 @@ ui.exportButton.addEventListener('click', exportStl);
 ui.exportObjButton.addEventListener('click', exportObj);
 ui.exportSelectionButton.addEventListener('click', () => exportSelection('stl'));
 ui.saveProjectButton.addEventListener('click', saveProject);
+ui.objectsToggle.addEventListener('click', () => {
+  setObjectsDrawerOpen(!objectsDrawerOpen);
+});
+ui.objectsClose.addEventListener('click', () => {
+  setObjectsDrawerOpen(false);
+});
+ui.objectsList.addEventListener('input', (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement) || target.dataset.action !== 'rename') return;
+  const index = Number(target.dataset.index);
+  if (!Number.isInteger(index) || !objectItems[index]) return;
+  objectNames[index] = target.value.trim() || objectDefaultName(index);
+  objectItems[index].name = objectNames[index];
+});
+ui.objectsList.addEventListener('click', (event) => {
+  const button = event.target.closest('button[data-action]');
+  if (!button) return;
+  const index = Number(button.dataset.index);
+  const action = button.dataset.action;
+  if (!Number.isInteger(index)) return;
+  if (action === 'select') selectObjectByIndex(index);
+  if (action === 'export') exportObjectByIndex(index);
+  if (action === 'delete') deleteObjectByIndex(index);
+});
 ui.optionsMenuButton.addEventListener('click', () => {
   const nextHidden = !ui.optionsMenu.hidden;
   ui.optionsMenu.hidden = nextHidden;
   ui.optionsMenuButton.setAttribute('aria-expanded', String(!nextHidden));
 });
 document.addEventListener('click', (event) => {
+  if (objectsDrawerOpen
+    && !ui.objectsDrawer.contains(event.target)
+    && !ui.objectsToggle.contains(event.target)) {
+    setObjectsDrawerOpen(false);
+  }
   if (ui.optionsMenu.hidden) return;
   if (ui.optionsMenu.contains(event.target) || ui.optionsMenuButton.contains(event.target)) return;
   ui.optionsMenu.hidden = true;

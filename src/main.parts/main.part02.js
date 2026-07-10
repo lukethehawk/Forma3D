@@ -214,6 +214,7 @@ function refreshObjectItems() {
   if (!model) {
     objectItems = [];
     objectNames = [];
+    renderObjectsDrawer();
     return;
   }
 
@@ -226,6 +227,72 @@ function refreshObjectItems() {
     triangles: component.triangles,
   }));
   objectNames = objectItems.map((item) => item.name);
+  renderObjectsDrawer();
+}
+
+function setObjectsDrawerOpen(open) {
+  objectsDrawerOpen = Boolean(open);
+  ui.objectsDrawer.classList.toggle('open', objectsDrawerOpen);
+  ui.objectsDrawer.setAttribute('aria-hidden', String(!objectsDrawerOpen));
+  ui.objectsToggle.classList.toggle('active', objectsDrawerOpen);
+}
+
+function renderObjectsDrawer() {
+  if (!ui.objectsList || !ui.objectsCount) return;
+  const heading = ui.objectsDrawer.querySelector('.objects-drawer-heading strong');
+  const summaryLabel = ui.objectsDrawer.querySelector('.objects-drawer-summary span:last-child');
+  if (heading) heading.textContent = currentLanguage === 'en' ? 'Objects' : 'Oggetti';
+  if (summaryLabel) summaryLabel.textContent = currentLanguage === 'en' ? 'connected bodies' : 'corpi connessi';
+  ui.objectsCount.textContent = String(objectItems.length);
+  ui.objectsList.replaceChildren();
+
+  if (!objectItems.length) {
+    const empty = document.createElement('span');
+    empty.textContent = t('Nessun corpo');
+    ui.objectsList.append(empty);
+    return;
+  }
+
+  const activeTriangles = selected?.type === 'object' ? selected.triangles : null;
+  for (const item of objectItems) {
+    const isSelected = activeTriangles
+      && item.triangles.length === activeTriangles.length
+      && item.triangles.every((triangle, index) => triangle === activeTriangles[index]);
+    const row = document.createElement('div');
+    row.className = `object-row${isSelected ? ' selected' : ''}`;
+    row.dataset.index = String(item.index);
+
+    const nameInput = document.createElement('input');
+    nameInput.value = item.name;
+    nameInput.dataset.action = 'rename';
+    nameInput.dataset.index = String(item.index);
+    nameInput.setAttribute('aria-label', t('Nome oggetto'));
+    row.append(nameInput);
+
+    const meta = document.createElement('small');
+    meta.textContent = currentLanguage === 'en'
+      ? `${item.triangles.length} triangles`
+      : `${item.triangles.length} triangoli`;
+    row.append(meta);
+
+    const actions = document.createElement('div');
+    actions.className = 'object-actions';
+    const actionButtons = [
+      ['select', currentLanguage === 'en' ? 'Select' : 'Sel.'],
+      ['export', currentLanguage === 'en' ? 'Export' : 'Export'],
+      ['delete', currentLanguage === 'en' ? 'Delete' : 'Elimina'],
+    ];
+    for (const [action, label] of actionButtons) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.action = action;
+      button.dataset.index = String(item.index);
+      button.textContent = label;
+      actions.append(button);
+    }
+    row.append(actions);
+    ui.objectsList.append(row);
+  }
 }
 
 function setModelGeometry(geometry, recordHistory = true, options = {}) {
@@ -341,6 +408,7 @@ function clearCurrentModel(message = 'Modello rimosso. Apri un STL o crea una nu
   ui.fileName.textContent = 'Nessun modello';
   updateModelActions();
   refreshObjectItems();
+  setObjectsDrawerOpen(false);
   updateHistoryButtons();
   setTool('select');
   setStatus(message);
@@ -398,6 +466,13 @@ function deleteSelectedRegion() {
     setStatus(`Superficie cancellata: ${triangleCount} triangoli rimossi. Usa Ctrl+Z per annullare.`);
   }
   return true;
+}
+
+function deleteObjectByIndex(index) {
+  const item = objectItems[index];
+  if (!item || !model) return;
+  setSelectedObjectFromTriangles(item.triangles, null, index);
+  deleteSelectedRegion();
 }
 
 function formatRepairReport(report) {
@@ -1276,6 +1351,7 @@ function setSelectedObjectFromTriangles(triangles, point, objectIndex = null) {
   highlight.renderOrder = 3;
   addTransientOverlay(highlight, 'selection');
   updateModelActions();
+  renderObjectsDrawer();
   ui.selectionLabel.textContent = t('Oggetto selezionato');
   ui.selectionDetail.textContent = t('Corpo selezionato. Canc lo rimuove, Trasforma lo modifica.');
   ui.measureValue.value = `${triangles.length} ${t('facce')}`;

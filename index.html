@@ -186,10 +186,31 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="M14.5 14.5L21 21M7 10h6M10 7v6"/></svg>
           <span>Inquadra</span>
         </button>
+        <div class="tool-divider tool-divider-bottom"></div>
+        <button id="objects-toggle" class="tool" type="button" title="Oggetti">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/><path d="M7 5v4M13 10v4M18 15v4"/></svg>
+          <span>Oggetti</span>
+        </button>
       </aside>
 
       <section id="viewport" aria-label="Area di modellazione 3D">
         <canvas id="canvas"></canvas>
+        <aside id="objects-drawer" class="objects-drawer" aria-label="Pannello oggetti" aria-hidden="true">
+          <div class="objects-drawer-heading">
+            <div>
+              <span class="eyebrow">MODEL</span>
+              <strong>Objects</strong>
+            </div>
+            <button id="objects-close" class="icon-button" type="button" aria-label="Chiudi">x</button>
+          </div>
+          <div class="objects-drawer-summary">
+            <span id="objects-count">0</span>
+            <span>connected bodies</span>
+          </div>
+          <div id="objects-list" class="objects-list">
+            <span>No bodies</span>
+          </div>
+        </aside>
         <div id="hint" class="hint">
           Clic sinistro: seleziona · Rotellina premuta: orbita · Rotellina: zoom · Tasto destro: panoramica
         </div>

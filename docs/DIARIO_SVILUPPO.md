@@ -39,6 +39,8 @@ connected-body workflows:
   camera, connected-body metadata, construction guides and triangle geometry.
 - Export paths now include sanitized file names, full-model STL, full-model OBJ
   and STL export for the selected face/body.
+- The left toolbar ends with an `Objects` button. It opens a compact,
+  scrollable drawer with connected bodies, rename, select, export and delete.
 
 Working rule agreed with the user: after a complete change, if checks pass,
 commit and push to GitHub unless explicitly told not to.
@@ -57,6 +59,7 @@ a triangle mesh, so the app focuses on practical mesh operations:
 - 3D view with orbit, pan, zoom and quick views.
 - Planar face selection as connected coplanar regions.
 - Connected body selection by double click.
+- Compact `Objects` drawer for connected bodies.
 - Push/Pull on planar regions and 2D planes.
 - Cylindrical holes with preview and numeric offsets.
 - Simple cylindrical hole recognition and relocation.
@@ -130,10 +133,15 @@ The vertical toolbar is grouped:
 - `Solids`: `Box`, `Cylinder`, `Cone`, `Pyramid`, `Gear`, `3D Text`;
 - `Booleans`: `Subtract`, `Hole`, `Move hole`;
 - `2D`: `Line`, `Planes`.
+- bottom drawer button: `Objects`.
 
 Submenus open to the right with hover/focus. Tool buttons keep `data-tool`, so
 `setTool(tool)` and keyboard shortcuts remain independent from the visual menu
 layout.
+
+`Objects` is not a modeling tool and does not use `data-tool`. It opens a slim
+left drawer inside the viewport. The list is scrollable and each connected body
+row supports rename, select, STL export and delete.
 
 The topbar keeps `Open STL` and `Remove model` as primary actions. `Options`
 contains:
@@ -213,7 +221,8 @@ parametric CAD history; it restores the current mesh/editor state.
 `exportStl()` writes binary STL as `<sanitized-name>-modified.stl`.
 `exportObj()` writes OBJ as `<sanitized-name>-modified.obj`.
 `exportSelection()` extracts the selected face/body triangles and writes a
-selection STL. Object-row export writes that body as STL.
+selection STL. The `Objects` drawer can also export a single connected body as
+STL.
 
 `sanitizeFileBase()` removes accents, spaces and unsafe characters so downloads
 are predictable across browsers and operating systems.
@@ -260,14 +269,12 @@ can live inside the same STL mesh.
 ## Connected Body Metadata
 
 `refreshObjectItems()` calls `collectConnectedComponents(model.geometry)` and
-stores every connected triangle island in `objectItems`. This is currently an
-internal metadata layer used by project save/open and selection export, not a
-visible object manager.
+stores every connected triangle island in `objectItems`. This metadata layer is
+used by project save/open, selection export and the compact `Objects` drawer.
 
 Since STL has no persistent object IDs, names are index-based and may shift
-after destructive topology changes. The next UI iteration should expose this as
-a compact collapsible object menu from the left toolbar, not as a permanent
-viewport panel.
+after destructive topology changes. Future iterations should replace
+index-based names with stable body IDs.
 
 ## Push/Pull
 
@@ -373,7 +380,6 @@ coplanar face centers, avoiding noisy STL triangulation diagonals.
 ## Future Improvements
 
 - Hole filling with preview and strategy choice.
-- Compact collapsible Objects menu from the left toolbar.
 - Stable object IDs and a richer scene model beyond connected-component indexes.
 - 3D transform gizmo.
 - More advanced snaps: perpendiculars, intersections and persistent constraints.
@@ -439,6 +445,8 @@ di intervenire ancora:
   metadati dei corpi connessi, guide e geometria triangolare;
 - l'export ora include nomi file ripuliti, STL completo, OBJ completo e STL
   della selezione.
+- la toolbar sinistra termina con `Objects`, che apre un drawer compatto e
+  scrollabile con corpi connessi, rinomina, selezione, export ed eliminazione.
 
 Regola di lavoro concordata: dopo una modifica completa, se `npm test` e
 `npm run build` passano, fare commit e push su GitHub salvo richiesta contraria.
@@ -456,6 +464,7 @@ il file come mesh triangolare e offre strumenti pratici:
 - vista 3D con orbita, pan, zoom e viste rapide;
 - selezione di superfici piane riconosciute come regioni complanari;
 - selezione di corpi connessi tramite doppio click;
+- drawer compatto `Objects` per i corpi connessi;
 - Spingi/Tira su regioni piane;
 - foro cilindrico con anteprima e offset numerici;
 - riconoscimento e spostamento di fori cilindrici semplici;
@@ -544,12 +553,17 @@ La toolbar verticale non espone piu' tutte le azioni in una lista piatta:
   `Ingranaggio`, `Testo 3D`;
 - menu `Booleane`: `Sottrai`, `Foro`, `Sposta foro`.
 - menu `2D`: `Linea`, `Piani`.
+- tasto finale in basso: `Objects`.
 
 I sottomenu sono elementi HTML leggeri che si aprono verso destra con hover o
 focus. I pulsanti reali mantengono `data-tool`, quindi il controller continua a
 passare da `setTool(tool)` e le scorciatoie restano indipendenti dal layout.
 Le voci dei sottomenu usano piccole icone SVG inline per distinguere solidi,
 booleane e strumenti 2D senza allungare la toolbar.
+
+`Objects` non e' uno strumento di modellazione e non usa `data-tool`. Apre un
+drawer sottile nel viewport, con lista scrollabile. Ogni corpo connesso ha
+rinomina, selezione, export STL ed eliminazione.
 
 La topbar mantiene `Apri STL` e `Rimuovi modello` come azioni primarie. Il menu
 `Opzioni`, ultimo tasto a destra, contiene:
@@ -694,7 +708,8 @@ dell'editor, incluse informazioni che STL non puo' contenere.
 `exportStl()` usa `STLExporter` in formato binario e scarica
 `<nome-ripulito>-modified.stl`. `exportObj()` usa `OBJExporter` e scarica
 `<nome-ripulito>-modified.obj`. `exportSelection()` estrae i triangoli della
-faccia/corpo selezionato e scarica uno STL della sola selezione.
+faccia/corpo selezionato e scarica uno STL della sola selezione. Il drawer
+`Objects` puo' esportare anche un singolo corpo connesso come STL.
 
 `sanitizeFileBase()` rimuove accenti, spazi e caratteri problematici dai nomi
 file, cosi i download sono piu prevedibili tra browser e sistemi operativi.
@@ -821,14 +836,13 @@ di triangoli cliccata.
 ## Metadati dei corpi connessi
 
 `refreshObjectItems()` usa `collectConnectedComponents(model.geometry)` e
-salva ogni isola di triangoli connessi in `objectItems`. Per ora questo resta
-uno strato interno usato da salvataggio/apertura progetto ed export selezione,
-non un pannello visibile.
+salva ogni isola di triangoli connessi in `objectItems`. Questo strato viene
+usato da salvataggio/apertura progetto, export selezione e drawer compatto
+`Objects`.
 
 Poiche STL non ha ID persistenti, i nomi sono per ora legati all'indice del
-componente e potrebbero spostarsi dopo modifiche topologiche distruttive. La
-prossima iterazione UI dovrebbe esporre questi dati come menu compatto a
-scomparsa dalla toolbar sinistra, non come pannello permanente nel viewport.
+componente e potrebbero spostarsi dopo modifiche topologiche distruttive. In
+futuro conviene passare a ID corpo stabili.
 
 ## Spingi/Tira
 
@@ -1310,7 +1324,6 @@ Shortcut principali:
 - Chiusura buchi con anteprima/conferma e scelta della strategia di riempimento.
 - Import/export STEP usando un motore CAD dedicato, se il progetto passa da
   editor mesh a ricostruzione solida.
-- Menu Oggetti compatto e richiudibile dalla toolbar sinistra.
 - ID oggetto stabili e modello scena piu ricco rispetto agli indici dei
   componenti connessi.
 - Gizmo 3D trascinabile con frecce/anelli se il pannello numerico non basta.

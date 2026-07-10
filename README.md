@@ -82,6 +82,7 @@ referenced project notices are tracked in
 | Double click in `Select` or `Transform` | Select the clicked connected body |
 | `Push/Pull` | Extrude or recess selected planar faces |
 | `Transform` | Move, rotate or scale only the selected body |
+| `Objects` drawer | Open a compact body list from the bottom of the left toolbar |
 | `Save project` / `Open project` | Store and restore `.forma3d.json` project state |
 | `Repair mesh` | Weld vertices, remove bad triangles and planarize near-flat areas |
 | `Export STL` / `Export OBJ` | Download the edited mesh |
@@ -126,6 +127,8 @@ Navigation:
   selected as faces so they can be pushed/pulled immediately.
 - `Transform`: automatically switches to Object mode and edits only the selected
   connected body.
+- `Objects`: opens a collapsible drawer with connected bodies. Rows support
+  rename, select, export and delete without occupying the viewport permanently.
 </details>
 
 <details>
@@ -274,6 +277,7 @@ e le note sui pattern di riferimento sono in
 | Doppio click in `Select` o `Transform` | Seleziona il corpo connesso cliccato |
 | `Push/Pull` | Estrude o incide facce piane selezionate |
 | `Transform` | Sposta, ruota o scala solo il corpo selezionato |
+| Drawer `Objects` | Apre una lista compatta dei corpi dalla toolbar sinistra |
 | `Save project` / `Open project` | Salva e riapre lo stato `.forma3d.json` |
 | `Repair mesh` | Salda vertici, rimuove triangoli difettosi e planarizza aree quasi piatte |
 | `Export STL` / `Export OBJ` | Scarica la mesh modificata |
@@ -319,6 +323,9 @@ Navigazione:
   selezionati automaticamente come facce.
 - `Transform`: passa automaticamente a Object mode e modifica solo il corpo
   connesso selezionato.
+- `Objects`: apre un drawer richiudibile con i corpi connessi. Le righe
+  permettono rinomina, selezione, export ed eliminazione senza occupare il
+  viewport in modo permanente.
 </details>
 
 <details>
