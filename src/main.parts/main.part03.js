@@ -931,6 +931,80 @@ async function applyShorten() {
   }
 }
 
+function hollowThicknessFromInput() {
+  return parseDecimal(ui.hollowThickness.value, 0);
+}
+
+function updateHollowState() {
+  if (!ui.hollowReadout || !ui.applyHollow) return;
+  if (!model) {
+    ui.applyHollow.disabled = true;
+    ui.hollowReadout.textContent = t('Apri o crea un modello prima di usare Svuota.');
+    return;
+  }
+
+  const thickness = hollowThicknessFromInput();
+  if (!(thickness > 0)) {
+    ui.applyHollow.disabled = true;
+    ui.hollowReadout.textContent = t('Lo spessore deve essere maggiore di 0 mm.');
+    return;
+  }
+
+  const info = currentModelInfo ?? modelComplexityInfo(null, model.geometry);
+  ui.applyHollow.disabled = false;
+  ui.hollowReadout.textContent = info.isLarge
+    ? t('Mesh grande: lo svuotamento puo richiedere tempo e puo creare auto-intersezioni sui dettagli piccoli.')
+    : currentLanguage === 'en'
+      ? `Wall thickness: ${formatMillimeters(thickness)}. Works best on closed, clean meshes.`
+      : `Spessore parete: ${formatMillimeters(thickness)}. Funziona meglio su mesh chiuse e pulite.`;
+}
+
+async function applyHollow() {
+  if (!model) {
+    setStatus('Apri o crea un modello prima di usare Svuota.');
+    updateHollowState();
+    return;
+  }
+
+  const thickness = hollowThicknessFromInput();
+  if (!(thickness > 0)) {
+    setStatus('Lo spessore deve essere maggiore di 0 mm.');
+    updateHollowState();
+    return;
+  }
+
+  const info = currentModelInfo ?? modelComplexityInfo(null, model.geometry);
+  if (info.isLarge) {
+    setStatus('Mesh grande: lo svuotamento puo richiedere tempo e puo creare auto-intersezioni sui dettagli piccoli.');
+  }
+
+  showBusy('Svuotamento in corso...', 'Sto creando la superficie interna e le pareti dei bordi aperti.');
+  await waitForNextFrame();
+  snapshot();
+  try {
+    const result = hollowGeometry(model.geometry, thickness);
+    if (!result?.geometry) throw new Error(t('Lo svuotamento non ha prodotto geometria.'));
+    setModelGeometry(result.geometry, false, { preserveSketch: true });
+    updateHistoryButtons();
+    const boundaryText = result.openBoundaryCount
+      ? currentLanguage === 'en'
+        ? `; ${result.openBoundaryCount} open edges closed with side walls`
+        : `; ${result.openBoundaryCount} bordi aperti chiusi con pareti laterali`
+      : '';
+    setStatus(currentLanguage === 'en'
+      ? `Hollow completed: ${formatMillimeters(thickness)} wall, ${result.report.outputTriangles} triangles${boundaryText}.`
+      : `Svuotamento completato: parete ${formatMillimeters(thickness)}, ${result.report.outputTriangles} triangoli${boundaryText}.`);
+  } catch (error) {
+    console.error(`Errore Svuota: ${error?.stack ?? error}`);
+    const previous = undoStack.pop();
+    if (previous) setModelGeometry(previous, false, { preserveSketch: true });
+    updateHistoryButtons();
+    setStatus('Svuotamento non riuscito: prova uno spessore minore o ripara la mesh prima di riprovare.');
+  } finally {
+    hideBusy();
+  }
+}
+
 async function selectedTextFont() {
   const family = textFontSources[ui.textFont.value] ?? textFontSources.helvetiker;
   const url = ui.textBold.checked ? family.bold : family.regular;

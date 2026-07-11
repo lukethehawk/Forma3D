@@ -12,6 +12,7 @@ import {
   extractTrianglesFromGeometry,
   findConnectedComponent,
   findCoplanarRegion,
+  hollowGeometry,
   modelComplexityInfo,
   pushPullGeometry,
   regionHasCoplanarSupport,
@@ -227,6 +228,42 @@ test('removeMiddleSectionGeometry returns null when one side would be empty', ()
   });
 
   assert.equal(result, null);
+});
+
+test('hollowGeometry creates an inner shell for a simple box', () => {
+  const geometry = new THREE.BoxGeometry(10, 8, 6).toNonIndexed();
+  const result = hollowGeometry(geometry, 1);
+  assert.ok(result);
+  assert.ok(result.geometry);
+  assert.ok(triangleCount(result.geometry) > triangleCount(geometry));
+  assert.equal(result.report.sourceTriangles, triangleCount(geometry));
+  assert.equal(result.openBoundaryCount, 0);
+  result.geometry.computeBoundingBox();
+  assert.ok(Math.abs(result.geometry.boundingBox.max.x - 5) < 1e-6);
+  assert.ok(Math.abs(result.geometry.boundingBox.min.x + 5) < 1e-6);
+});
+
+test('hollowGeometry rejects invalid wall thickness', () => {
+  const geometry = new THREE.BoxGeometry(10, 8, 6).toNonIndexed();
+  assert.throws(() => hollowGeometry(geometry, 0), /greater than 0/);
+  assert.throws(() => hollowGeometry(geometry, -1), /greater than 0/);
+});
+
+test('hollowGeometry closes open boundary edges with side walls', () => {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute([
+    -5, -5, 0,
+    5, -5, 0,
+    5, 5, 0,
+    -5, -5, 0,
+    5, 5, 0,
+    -5, 5, 0,
+  ], 3));
+  const result = hollowGeometry(geometry, 1);
+  assert.ok(result);
+  assert.equal(result.openBoundaryCount, 4);
+  assert.equal(result.report.wallTriangles, 8);
+  assert.equal(triangleCount(result.geometry), triangleCount(geometry) * 2 + 8);
 });
 
 test('combineGeometries appends geometry positions without a boolean operation', () => {

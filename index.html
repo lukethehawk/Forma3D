@@ -152,6 +152,10 @@
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16"/><path d="M8 4v16M16 4v16"/><path d="M10 12h8M15 9l3 3-3 3"/></svg>
               <span>Accorcia</span>
             </button>
+            <button class="tool compact" data-tool="hollow" title="Svuota modello (U)">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M8 10l4-2 4 2v4l-4 2-4-2z"/><path d="M12 8v8"/></svg>
+              <span>Svuota</span>
+            </button>
             <button class="tool compact" data-tool="hole" title="Foro (H)">
               <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3"/></svg>
               <span>Foro</span>
@@ -767,6 +771,21 @@
           <small id="shorten-readout">Il piano blu indica il taglio. Lato mantenuto: scegli negativo o positivo.</small>
           <button id="apply-shorten" type="button" class="action-button danger" disabled>Applica taglio</button>
           <button id="reset-shorten" type="button" class="secondary-button">Ricomincia</button>
+        </form>
+
+        <form id="hollow-form" class="tool-form primitive-form" hidden>
+          <div class="hole-readout">
+            <span>Guscio modello</span>
+            <strong id="hollow-info">Svuota il modello mantenendo la superficie esterna e creando una parete interna.</strong>
+            <small>Funziona meglio su mesh chiuse e pulite. Dettagli piu piccoli dello spessore possono auto-intersecarsi.</small>
+          </div>
+          <label for="hollow-thickness">Spessore parete</label>
+          <div class="field-with-unit">
+            <input id="hollow-thickness" type="text" inputmode="decimal" min="0.1" step="0.1" value="2" />
+            <span>mm</span>
+          </div>
+          <small id="hollow-readout">Crea un guscio mesh-first. Fori di drenaggio e svuota-corpo selezionato sono previsti per una fase successiva.</small>
+          <button id="apply-hollow" type="button" class="action-button danger" disabled>Svuota modello</button>
         </form>
 
         <form id="sketch-form" class="tool-form primitive-form" hidden>

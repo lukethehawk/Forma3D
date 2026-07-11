@@ -871,6 +871,162 @@ export function removeMiddleSectionGeometry(geometry, options = {}) {
   };
 }
 
+function collectBoundaryEdges(cornerKeys, triangleTotal) {
+  const edgeMap = new Map();
+
+  for (let triangle = 0; triangle < triangleTotal; triangle += 1) {
+    const offset = triangle * 3;
+    const triangleKeys = [
+      cornerKeys[offset],
+      cornerKeys[offset + 1],
+      cornerKeys[offset + 2],
+    ];
+
+    for (const [fromCorner, toCorner] of [[0, 1], [1, 2], [2, 0]]) {
+      const fromKey = triangleKeys[fromCorner];
+      const toKey = triangleKeys[toCorner];
+      if (fromKey === toKey) continue;
+      const key = orderedEdgeKey(fromKey, toKey);
+      if (!edgeMap.has(key)) edgeMap.set(key, []);
+      edgeMap.get(key).push({ fromKey, toKey });
+    }
+  }
+
+  const boundaryEdges = [];
+  let nonManifoldEdges = 0;
+  for (const edges of edgeMap.values()) {
+    if (edges.length === 1) boundaryEdges.push(edges[0]);
+    else if (edges.length > 2) nonManifoldEdges += 1;
+  }
+
+  return { boundaryEdges, nonManifoldEdges };
+}
+
+export function hollowGeometry(geometry, thickness, options = {}) {
+  const wallThickness = Number(thickness);
+  if (!(wallThickness > 0)) {
+    throw new RangeError('Hollow thickness must be greater than 0.');
+  }
+
+  const source = geometry?.index ? geometry.toNonIndexed() : geometry?.clone();
+  const position = source?.getAttribute('position');
+  if (!position) {
+    source?.dispose?.();
+    throw new Error('Hollow requires a geometry with positions.');
+  }
+
+  const tolerance = Math.max(options.tolerance ?? DEFAULT_TOLERANCE, 1e-8);
+  const areaTolerance = Math.max(options.areaTolerance ?? tolerance * tolerance, 1e-16);
+  const triangleTotal = Math.floor(position.count / 3);
+  const positions = [];
+  const cornerKeys = new Array(position.count);
+  const vertices = new Map();
+  const a = new THREE.Vector3();
+  const b = new THREE.Vector3();
+  const c = new THREE.Vector3();
+  const normal = new THREE.Vector3();
+  const center = new THREE.Vector3();
+  const fallback = new THREE.Vector3();
+
+  source.computeBoundingBox();
+  source.boundingBox.getCenter(center);
+
+  const ensureVertex = (point) => {
+    const key = pointKey(point, tolerance);
+    if (!vertices.has(key)) {
+      vertices.set(key, {
+        count: 0,
+        inner: new THREE.Vector3(),
+        normal: new THREE.Vector3(),
+        position: new THREE.Vector3(),
+      });
+    }
+    const vertex = vertices.get(key);
+    vertex.position.add(point);
+    vertex.count += 1;
+    return key;
+  };
+
+  for (let index = 0; index < position.count; index += 1) {
+    a.fromBufferAttribute(position, index);
+    cornerKeys[index] = ensureVertex(a);
+  }
+
+  for (let triangle = 0; triangle < triangleTotal; triangle += 1) {
+    a.fromBufferAttribute(position, triangle * 3);
+    b.fromBufferAttribute(position, triangle * 3 + 1);
+    c.fromBufferAttribute(position, triangle * 3 + 2);
+    normal.subVectors(b, a).cross(new THREE.Vector3().subVectors(c, a));
+    if (normal.lengthSq() <= areaTolerance) continue;
+    vertices.get(cornerKeys[triangle * 3]).normal.add(normal);
+    vertices.get(cornerKeys[triangle * 3 + 1]).normal.add(normal);
+    vertices.get(cornerKeys[triangle * 3 + 2]).normal.add(normal);
+  }
+
+  const warnings = [];
+  for (const vertex of vertices.values()) {
+    vertex.position.multiplyScalar(1 / vertex.count);
+    if (vertex.normal.lengthSq() <= 1e-20) {
+      fallback.subVectors(vertex.position, center);
+      if (fallback.lengthSq() <= 1e-20) fallback.set(0, 0, 1);
+      vertex.normal.copy(fallback);
+      warnings.push('fallback-normal');
+    }
+    vertex.normal.normalize();
+    vertex.inner.copy(vertex.position).addScaledVector(vertex.normal, -wallThickness);
+  }
+
+  for (let triangle = 0; triangle < triangleTotal; triangle += 1) {
+    a.fromBufferAttribute(position, triangle * 3);
+    b.fromBufferAttribute(position, triangle * 3 + 1);
+    c.fromBufferAttribute(position, triangle * 3 + 2);
+    pushTrianglePositions(positions, a, b, c, areaTolerance);
+
+    const innerA = vertices.get(cornerKeys[triangle * 3]).inner;
+    const innerB = vertices.get(cornerKeys[triangle * 3 + 1]).inner;
+    const innerC = vertices.get(cornerKeys[triangle * 3 + 2]).inner;
+    pushTrianglePositions(positions, innerC, innerB, innerA, areaTolerance);
+  }
+
+  const { boundaryEdges, nonManifoldEdges } = collectBoundaryEdges(cornerKeys, triangleTotal);
+  for (const edge of boundaryEdges) {
+    const outerA = vertices.get(edge.fromKey).position;
+    const outerB = vertices.get(edge.toKey).position;
+    const innerA = vertices.get(edge.fromKey).inner;
+    const innerB = vertices.get(edge.toKey).inner;
+    pushTrianglePositions(positions, outerA, outerB, innerB, areaTolerance);
+    pushTrianglePositions(positions, outerA, innerB, innerA, areaTolerance);
+  }
+
+  if (boundaryEdges.length) warnings.push('open-boundary-capped');
+  if (nonManifoldEdges) warnings.push('non-manifold-edges');
+  if (!positions.length) {
+    source.dispose();
+    return null;
+  }
+
+  const result = new THREE.BufferGeometry();
+  result.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  result.computeVertexNormals();
+  result.computeBoundingBox();
+  result.computeBoundingSphere();
+  source.dispose();
+
+  return {
+    geometry: result,
+    openBoundaryCount: boundaryEdges.length,
+    warnings: [...new Set(warnings)],
+    report: {
+      innerTriangles: triangleTotal,
+      nonManifoldEdges,
+      openBoundaryCount: boundaryEdges.length,
+      outputTriangles: triangleCount(result),
+      sourceTriangles: triangleTotal,
+      wallTriangles: boundaryEdges.length * 2,
+    },
+  };
+}
+
 export function createPushPullRegionGeometry(geometry, region, distance) {
   const positions = [];
   const sourcePosition = geometry.getAttribute('position');

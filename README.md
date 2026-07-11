@@ -86,6 +86,7 @@ referenced project notices are tracked in
 | `Save project` / `Open project` | Store and restore `.forma3d.json` project state |
 | `Repair mesh` | Weld vertices, remove bad triangles and planarize near-flat areas |
 | `Shorten` | Cut an STL along X/Y/Z without scaling and cap the cut where possible |
+| `Hollow` | Keep the outer surface and create an inward shell with a wall thickness |
 | `Export STL` / `Export OBJ` | Download the edited mesh |
 | `Export selection` | Download only the selected face or body as STL |
 
@@ -103,6 +104,7 @@ referenced project notices are tracked in
 | `A` | 3D Text |
 | `T` | Subtract |
 | `X` | Shorten / cut |
+| `U` | Hollow model |
 | `H` | Hole |
 | `F` | Move hole |
 | `L` | Line guides |
@@ -157,6 +159,7 @@ The `Booleans` menu contains:
 
 - Subtract
 - Shorten
+- Hollow
 - Hole
 - Move hole
 
@@ -165,6 +168,14 @@ Boolean operations work best on closed and reasonably clean meshes.
 side, keep the positive side, or remove a middle section and close the gap by
 moving the positive side back against the negative side. Very dirty,
 non-manifold or hollow cross-sections can still need slicer/mesh repair checks.
+
+`Hollow` is also mesh-first. It keeps the original outside triangles, creates an
+inner surface offset along averaged vertex normals, reverses the inner winding,
+and closes open boundaries with side walls when possible. It is not a
+parametric CAD offset: dirty STL files, non-manifold areas, details smaller than
+the wall thickness and tight fillets can still create self-intersections or
+surfaces that need slicer validation. Drain holes and hollowing only the
+selected body are documented future steps.
 
 </details>
 
@@ -305,6 +316,7 @@ e le note sui pattern di riferimento sono in
 | `Save project` / `Open project` | Salva e riapre lo stato `.forma3d.json` |
 | `Repair mesh` | Salda vertici, rimuove triangoli difettosi e planarizza aree quasi piatte |
 | `Shorten` | Taglia un STL lungo X/Y/Z senza scalarlo e richiude dove possibile |
+| `Hollow` | Mantiene la superficie esterna e crea un guscio interno con spessore parete |
 | `Export STL` / `Export OBJ` | Scarica la mesh modificata |
 | `Export selection` | Scarica solo la faccia o il corpo selezionato come STL |
 
@@ -322,6 +334,7 @@ e le note sui pattern di riferimento sono in
 | `A` | Testo 3D |
 | `T` | Sottrai |
 | `X` | Accorcia / taglia |
+| `U` | Svuota modello |
 | `H` | Foro |
 | `F` | Sposta foro |
 | `L` | Linee guida |
@@ -378,6 +391,7 @@ Il menu `Booleans` contiene:
 
 - Sottrai
 - Accorcia
+- Svuota
 - Foro
 - Sposta foro
 
@@ -387,6 +401,14 @@ negativo, mantenere il lato positivo, oppure rimuovere una sezione mediana e
 richiudere il vuoto spostando il lato positivo contro quello negativo. Sezioni
 cave molto sporche o non-manifold possono richiedere comunque controlli in
 slicer o riparazione mesh.
+
+`Svuota` e' mesh-first. Mantiene i triangoli esterni originali, crea una
+superficie interna spostata lungo le normali medie dei vertici, inverte il
+winding interno e chiude i bordi aperti con pareti laterali quando possibile.
+Non e' un offset CAD parametrico: STL sporchi, aree non-manifold, dettagli piu
+piccoli dello spessore parete e raccordi stretti possono creare
+auto-intersezioni o superfici da verificare nello slicer. Fori di drenaggio e
+svuotamento del solo corpo selezionato restano passi futuri.
 
 </details>
 

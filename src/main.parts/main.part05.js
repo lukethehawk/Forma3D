@@ -557,6 +557,12 @@ document.querySelector('#reset-shorten').addEventListener('click', () => {
   drawShortenPreview();
   setStatus('Accorcia: regola asse, lato mantenuto e nuova lunghezza.');
 });
+ui.hollowThickness.addEventListener('input', updateHollowState);
+ui.hollowThickness.addEventListener('change', updateHollowState);
+ui.applyHollow.addEventListener('click', (event) => {
+  event.preventDefault();
+  applyHollow();
+});
 [
   ui.textContent,
   ui.textFont,
@@ -721,6 +727,7 @@ window.addEventListener('keydown', (event) => {
     n: 'plane',
     t: 'cut',
     x: 'shorten',
+    u: 'hollow',
     a: 'text',
     l: 'line',
     m: 'measure',

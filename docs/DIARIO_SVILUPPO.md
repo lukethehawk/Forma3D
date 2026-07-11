@@ -371,6 +371,37 @@ Known limits:
 - middle-section fusion works best when the two cut cross-sections are similar;
 - open chains are tracked internally but not exposed in the UI yet.
 
+### Hollow / Mesh Shell
+
+`Hollow` lives in the `Booleans` menu as a whole-model operation. It is not CSG
+and it does not introduce a CAD kernel. The controller reads a wall thickness in
+millimeters, calls `snapshot()` once, then applies `hollowGeometry()` and
+replaces the current STL through `setModelGeometry(result.geometry, false,
+{ preserveSketch: true })`.
+
+`hollowGeometry(geometry, thickness, options)` is a pure mesh helper:
+
+- validates `thickness > 0`;
+- works from a non-indexed copy of the geometry;
+- keeps the original outer triangles unchanged;
+- groups coincident vertices with the standard tolerance;
+- computes averaged, area-weighted vertex normals;
+- creates an inner surface by moving each unique vertex inward by the requested
+  thickness;
+- writes the inner surface with inverted winding so normals face the cavity;
+- detects open boundary edges and bridges outer/inner edges with side walls;
+- returns `{ geometry, openBoundaryCount, warnings, report }`.
+
+Known limits:
+
+- this is an averaged-normal shell, not an exact robust offset surface;
+- dirty STL files, non-manifold topology and inverted triangle winding can
+  produce imperfect inward directions;
+- features smaller than the wall thickness, tight fillets and narrow slots can
+  self-intersect;
+- no drain holes yet;
+- no `hollow selected body` mode yet.
+
 ## 3D Text
 
 Text uses Three.js `TextGeometry` and font assets loaded by URL only when needed.
@@ -1077,6 +1108,38 @@ Limiti noti:
 - la fusione mediana funziona meglio quando le due sezioni tagliate hanno forme
   simili;
 - le catene aperte sono tracciate internamente ma non ancora esposte nella UI.
+
+### Svuota / guscio mesh
+
+`Svuota` vive nel menu `Booleans` come operazione sul modello intero. Non usa
+CSG e non introduce un kernel CAD. Il controller legge lo spessore parete in
+millimetri, chiama `snapshot()` una sola volta, poi applica `hollowGeometry()` e
+sostituisce lo STL corrente con `setModelGeometry(result.geometry, false,
+{ preserveSketch: true })`.
+
+`hollowGeometry(geometry, thickness, options)` e' un helper mesh puro:
+
+- valida `thickness > 0`;
+- lavora su una copia non indicizzata della geometria;
+- mantiene invariati i triangoli esterni originali;
+- raggruppa i vertici coincidenti con la tolleranza standard;
+- calcola normali medie pesate per area;
+- crea una superficie interna spostando ogni vertice unico verso l'interno
+  dello spessore richiesto;
+- scrive la superficie interna con winding invertito, quindi le normali puntano
+  verso la cavita;
+- rileva i bordi aperti e collega bordo esterno/interno con pareti laterali;
+- restituisce `{ geometry, openBoundaryCount, warnings, report }`.
+
+Limiti noti:
+
+- e' un guscio a normali medie, non un offset CAD robusto ed esatto;
+- STL sporchi, topology non-manifold e triangoli invertiti possono produrre
+  direzioni interne imperfette;
+- dettagli piu piccoli dello spessore, raccordi stretti e cave sottili possono
+  auto-intersecarsi;
+- i fori di drenaggio sono TODO;
+- lo svuotamento del solo corpo selezionato e' TODO.
 
 Le primitive solide nel menu `Solidi` condividono la stessa logica UI:
 
