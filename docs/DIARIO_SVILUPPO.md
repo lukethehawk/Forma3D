@@ -385,9 +385,11 @@ replaces the current STL through `setModelGeometry(result.geometry, false,
 - works from a non-indexed copy of the geometry;
 - keeps the original outer triangles unchanged;
 - groups coincident vertices with the standard tolerance;
-- computes averaged, area-weighted vertex normals;
-- creates an inner surface by moving each unique vertex inward by the requested
-  thickness;
+- computes adjacent face planes for each unique vertex;
+- creates an inner surface by intersecting the offset planes when possible,
+  preserving exact wall thickness on box-like planar solids;
+- falls back to averaged vertex normals only when the adjacent planes are
+  degenerate or under-constrained;
 - writes the inner surface with inverted winding so normals face the cavity;
 - detects open boundary edges and bridges outer/inner edges with side walls;
 - returns `{ geometry, openBoundaryCount, warnings, report }`.
@@ -401,6 +403,19 @@ Known limits:
   self-intersect;
 - no drain holes yet;
 - no `hollow selected body` mode yet.
+
+Important interaction with `Shorten`: the middle-section workflow uses
+`repairMeshGeometry(..., { preserveWinding: true })`. The default repair pass
+orients every connected component toward positive volume, which is useful for
+ordinary solids but wrong for hollow meshes because the inner shell must keep
+inverted winding to remain a cavity. Preserving winding lets median shortening
+weld and clean the mesh without turning the hollow interior into a second
+positive solid.
+
+Side `Shorten` cuts also preserve winding and use ring caps when they cut a
+hollow mesh. If the cut plane finds one loop inside another, the cap is
+triangulated as a wall ring between outer and inner loops instead of a filled
+face across the cavity.
 
 ## 3D Text
 
@@ -1123,9 +1138,11 @@ sostituisce lo STL corrente con `setModelGeometry(result.geometry, false,
 - lavora su una copia non indicizzata della geometria;
 - mantiene invariati i triangoli esterni originali;
 - raggruppa i vertici coincidenti con la tolleranza standard;
-- calcola normali medie pesate per area;
-- crea una superficie interna spostando ogni vertice unico verso l'interno
-  dello spessore richiesto;
+- calcola i piani delle facce adiacenti per ogni vertice unico;
+- crea una superficie interna intersecando i piani offset quando possibile,
+  mantenendo lo spessore esatto sui solidi planari tipo box;
+- torna alle normali medie solo quando i piani adiacenti sono degeneri o
+  insufficienti;
 - scrive la superficie interna con winding invertito, quindi le normali puntano
   verso la cavita;
 - rileva i bordi aperti e collega bordo esterno/interno con pareti laterali;
@@ -1140,6 +1157,19 @@ Limiti noti:
   auto-intersecarsi;
 - i fori di drenaggio sono TODO;
 - lo svuotamento del solo corpo selezionato e' TODO.
+
+Interazione importante con `Accorcia`: il flusso `Sezione mediana` usa
+`repairMeshGeometry(..., { preserveWinding: true })`. La riparazione standard
+orienta ogni componente con volume positivo, cosa utile per solidi normali ma
+sbagliata per mesh svuotate, perche il guscio interno deve mantenere winding
+invertito per restare una cavita. Preservare il winding consente di saldare e
+ripulire la mesh senza trasformare l'interno svuotato in un secondo solido
+positivo.
+
+Anche i tagli laterali di `Accorcia` preservano il winding e usano cap ad
+anello quando tagliano una mesh cava. Se il piano di taglio trova un loop dentro
+un altro, il tappo viene triangolato come cornice tra loop esterno e interno,
+non come faccia piena che chiude la cavita.
 
 Le primitive solide nel menu `Solidi` condividono la stessa logica UI:
 

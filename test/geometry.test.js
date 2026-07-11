@@ -38,6 +38,36 @@ function findTopTriangle(geometry) {
   throw new Error('Top triangle not found');
 }
 
+function uniqueAxisValues(geometry, axis) {
+  const position = geometry.getAttribute('position');
+  const values = new Set();
+  for (let index = 0; index < position.count; index += 1) {
+    values.add(Number(position.getComponent(index, axis).toFixed(6)));
+  }
+  return [...values].sort((a, b) => a - b);
+}
+
+function hasCapTriangleNearCenter(geometry, axis, planePosition, radius = 0.25) {
+  const position = geometry.getAttribute('position');
+  const points = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
+  for (let triangle = 0; triangle < triangleCount(geometry); triangle += 1) {
+    for (let corner = 0; corner < 3; corner += 1) {
+      points[corner].fromBufferAttribute(position, triangle * 3 + corner);
+    }
+    if (points.some((point) => Math.abs(point.getComponent(axis) - planePosition) > 1e-5)) {
+      continue;
+    }
+    const centroid = points[0].clone().add(points[1]).add(points[2]).multiplyScalar(1 / 3);
+    const projectedRadius = axis === 0
+      ? Math.hypot(centroid.y, centroid.z)
+      : axis === 1
+        ? Math.hypot(centroid.x, centroid.z)
+        : Math.hypot(centroid.x, centroid.y);
+    if (projectedRadius < radius) return true;
+  }
+  return false;
+}
+
 test('findCoplanarRegion groups the two triangles of a box face', () => {
   const geometry = new THREE.BoxGeometry(10, 8, 6).toNonIndexed();
   const region = findCoplanarRegion(geometry, findTopTriangle(geometry));
@@ -241,6 +271,9 @@ test('hollowGeometry creates an inner shell for a simple box', () => {
   result.geometry.computeBoundingBox();
   assert.ok(Math.abs(result.geometry.boundingBox.max.x - 5) < 1e-6);
   assert.ok(Math.abs(result.geometry.boundingBox.min.x + 5) < 1e-6);
+  assert.deepEqual(uniqueAxisValues(result.geometry, 0), [-5, -4, 4, 5]);
+  assert.deepEqual(uniqueAxisValues(result.geometry, 1), [-4, -3, 3, 4]);
+  assert.deepEqual(uniqueAxisValues(result.geometry, 2), [-3, -2, 2, 3]);
 });
 
 test('hollowGeometry rejects invalid wall thickness', () => {
@@ -264,6 +297,50 @@ test('hollowGeometry closes open boundary edges with side walls', () => {
   assert.equal(result.openBoundaryCount, 4);
   assert.equal(result.report.wallTriangles, 8);
   assert.equal(triangleCount(result.geometry), triangleCount(geometry) * 2 + 8);
+});
+
+test('repairMeshGeometry can preserve inverted hollow inner winding', () => {
+  const geometry = new THREE.BoxGeometry(10, 8, 6).toNonIndexed();
+  const hollow = hollowGeometry(geometry, 1);
+  const repaired = repairMeshGeometry(hollow.geometry, {
+    planarize: false,
+    preserveWinding: true,
+  });
+  assert.ok(repaired);
+  assert.equal(repaired.report.flippedTriangles, 0);
+  assert.equal(triangleCount(repaired.geometry), triangleCount(hollow.geometry));
+});
+
+test('side shorten can repair a hollow mesh without flipping the inner shell', () => {
+  const geometry = new THREE.BoxGeometry(20, 10, 8).toNonIndexed();
+  const hollow = hollowGeometry(geometry, 1);
+  const shortened = cutPlaneGeometry(hollow.geometry, {
+    axis: 'x',
+    cap: true,
+    keepSide: 'negative',
+    position: 2,
+  });
+  const repaired = repairMeshGeometry(shortened.geometry, {
+    planarize: false,
+    preserveWinding: true,
+  });
+  assert.ok(repaired);
+  assert.equal(repaired.report.flippedTriangles, 0);
+  assert.ok(triangleCount(repaired.geometry) >= triangleCount(shortened.geometry) - 2);
+});
+
+test('side shorten caps a hollow box as a wall ring instead of filling the cavity', () => {
+  const geometry = new THREE.BoxGeometry(20, 10, 8).toNonIndexed();
+  const hollow = hollowGeometry(geometry, 1);
+  const shortened = cutPlaneGeometry(hollow.geometry, {
+    axis: 'x',
+    cap: true,
+    keepSide: 'negative',
+    position: 0,
+  });
+  assert.ok(shortened);
+  assert.equal(hasCapTriangleNearCenter(shortened.geometry, 0, 0), false);
+  assert.ok(shortened.report.capTriangles > 0);
 });
 
 test('combineGeometries appends geometry positions without a boolean operation', () => {

@@ -173,6 +173,54 @@ function orientTrianglesConsistently(points, triangles) {
   };
 }
 
+function analyzeTriangleTopology(triangles) {
+  const edgeMap = buildTriangleEdgeMap(triangles);
+  const neighbors = new Map();
+  let boundaryEdges = 0;
+  let nonManifoldEdges = 0;
+
+  for (const edges of edgeMap.values()) {
+    if (edges.length === 1) {
+      boundaryEdges += 1;
+      continue;
+    }
+    if (edges.length > 2) {
+      nonManifoldEdges += 1;
+      continue;
+    }
+
+    const [first, second] = edges;
+    if (!neighbors.has(first.triangleIndex)) neighbors.set(first.triangleIndex, []);
+    if (!neighbors.has(second.triangleIndex)) neighbors.set(second.triangleIndex, []);
+    neighbors.get(first.triangleIndex).push(second.triangleIndex);
+    neighbors.get(second.triangleIndex).push(first.triangleIndex);
+  }
+
+  const visited = new Set();
+  let components = 0;
+  for (let seed = 0; seed < triangles.length; seed += 1) {
+    if (visited.has(seed)) continue;
+    components += 1;
+    const stack = [seed];
+    visited.add(seed);
+    while (stack.length) {
+      const current = stack.pop();
+      for (const next of neighbors.get(current) ?? []) {
+        if (visited.has(next)) continue;
+        visited.add(next);
+        stack.push(next);
+      }
+    }
+  }
+
+  return {
+    boundaryEdges,
+    components,
+    flippedTriangles: 0,
+    nonManifoldEdges,
+  };
+}
+
 function normalizePlaneNormal(normal) {
   const result = normal.clone().normalize();
   const components = [result.x, result.y, result.z];
@@ -362,7 +410,9 @@ export function repairMeshGeometry(geometry, options = {}) {
     triangles.push(...cleanedTriangles);
   }
   if (!triangles.length) return null;
-  const topology = orientTrianglesConsistently(points, triangles);
+  const topology = options.preserveWinding === true
+    ? analyzeTriangleTopology(triangles)
+    : orientTrianglesConsistently(points, triangles);
   const positions = [];
   for (const point of points) {
     positions.push(point.x, point.y, point.z);
@@ -598,7 +648,19 @@ function pointInTriangle2D(point, a, b, c, sign) {
     && edge(c, a, point) >= tolerance;
 }
 
-function triangulateLoop(loop, axis, desiredNormalSign) {
+function pointInPolygon2D(point, polygon) {
+  let inside = false;
+  for (let index = 0, previous = polygon.length - 1; index < polygon.length; previous = index, index += 1) {
+    const current = polygon[index];
+    const last = polygon[previous];
+    const intersects = ((current.y > point.y) !== (last.y > point.y))
+      && point.x < ((last.x - current.x) * (point.y - current.y)) / ((last.y - current.y) || 1e-20) + current.x;
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
+
+function normalizeLoopPoints(loop, axis, desiredNormalSign) {
   const unique = [];
   const seen = new Set();
   for (const point of loop) {
@@ -607,13 +669,83 @@ function triangulateLoop(loop, axis, desiredNormalSign) {
     seen.add(key);
     unique.push(point.clone());
   }
-  if (unique.length < 3) return [];
+  if (unique.length < 3) return null;
 
   const projectionNormalSign = axis === 1 ? -1 : 1;
   const desiredAreaSign = desiredNormalSign * projectionNormalSign;
   const area = projectedArea(unique, axis);
-  if (Math.abs(area) < 1e-10) return [];
+  if (Math.abs(area) < 1e-10) return null;
   if (Math.sign(area) !== Math.sign(desiredAreaSign)) unique.reverse();
+  return unique;
+}
+
+function pushTriangleWithAxisNormal(triangles, a, b, c, axis, desiredNormalSign) {
+  const normal = new THREE.Vector3().subVectors(b, a).cross(new THREE.Vector3().subVectors(c, a));
+  const component = axis === 0 ? normal.x : axis === 1 ? normal.y : normal.z;
+  if (Math.sign(component || desiredNormalSign) === Math.sign(desiredNormalSign)) {
+    triangles.push([a, b, c]);
+  } else {
+    triangles.push([a, c, b]);
+  }
+}
+
+function loopCentroid(loop, target = new THREE.Vector3()) {
+  target.set(0, 0, 0);
+  for (const point of loop) target.add(point);
+  return target.multiplyScalar(1 / loop.length);
+}
+
+function angleAround(point, center, axis) {
+  const projected = projection2D(point, axis);
+  const projectedCenter = projection2D(center, axis);
+  return Math.atan2(projected.y - projectedCenter.y, projected.x - projectedCenter.x);
+}
+
+function rotateLoopToNearestAngle(loop, targetAngle, center, axis) {
+  let bestIndex = 0;
+  let bestDistance = Infinity;
+  for (let index = 0; index < loop.length; index += 1) {
+    const angle = angleAround(loop[index], center, axis);
+    const distance = Math.abs(Math.atan2(Math.sin(angle - targetAngle), Math.cos(angle - targetAngle)));
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestIndex = index;
+    }
+  }
+  return [...loop.slice(bestIndex), ...loop.slice(0, bestIndex)];
+}
+
+function triangulateRingBetweenLoops(outerLoop, innerLoop, axis, desiredNormalSign) {
+  const triangles = [];
+  const center = loopCentroid(outerLoop).add(loopCentroid(innerLoop)).multiplyScalar(0.5);
+  const outer = [...outerLoop].sort((a, b) => angleAround(a, center, axis) - angleAround(b, center, axis));
+  let inner = [...innerLoop].sort((a, b) => angleAround(a, center, axis) - angleAround(b, center, axis));
+  inner = rotateLoopToNearestAngle(inner, angleAround(outer[0], center, axis), center, axis);
+
+  if (outer.length === inner.length) {
+    for (let index = 0; index < outer.length; index += 1) {
+      const next = (index + 1) % outer.length;
+      pushTriangleWithAxisNormal(triangles, outer[index], outer[next], inner[next], axis, desiredNormalSign);
+      pushTriangleWithAxisNormal(triangles, outer[index], inner[next], inner[index], axis, desiredNormalSign);
+    }
+    return triangles;
+  }
+
+  const count = Math.max(outer.length, inner.length);
+  for (let index = 0; index < count; index += 1) {
+    const outerCurrent = outer[Math.floor((index / count) * outer.length) % outer.length];
+    const outerNext = outer[Math.floor(((index + 1) / count) * outer.length) % outer.length];
+    const innerCurrent = inner[Math.floor((index / count) * inner.length) % inner.length];
+    const innerNext = inner[Math.floor(((index + 1) / count) * inner.length) % inner.length];
+    pushTriangleWithAxisNormal(triangles, outerCurrent, outerNext, innerNext, axis, desiredNormalSign);
+    pushTriangleWithAxisNormal(triangles, outerCurrent, innerNext, innerCurrent, axis, desiredNormalSign);
+  }
+  return triangles;
+}
+
+function triangulateLoop(loop, axis, desiredNormalSign) {
+  const unique = normalizeLoopPoints(loop, axis, desiredNormalSign);
+  if (!unique) return [];
 
   const vertices = unique.map((point, index) => ({
     index,
@@ -663,6 +795,44 @@ function triangulateLoop(loop, axis, desiredNormalSign) {
     for (let index = 1; index < unique.length - 1; index += 1) {
       triangles.push([unique[0], unique[index], unique[index + 1]]);
     }
+  }
+
+  return triangles;
+}
+
+function triangulateCutLoops(rawLoops, axis, desiredNormalSign) {
+  const loops = rawLoops
+    .map((loop) => normalizeLoopPoints(loop, axis, desiredNormalSign))
+    .filter(Boolean)
+    .map((points) => ({
+      area: Math.abs(projectedArea(points, axis)),
+      centroid: loopCentroid(points),
+      points,
+      projected: points.map((point) => projection2D(point, axis)),
+    }))
+    .sort((a, b) => b.area - a.area);
+  const used = new Set();
+  const triangles = [];
+
+  for (let outerIndex = 0; outerIndex < loops.length; outerIndex += 1) {
+    if (used.has(outerIndex)) continue;
+    const outer = loops[outerIndex];
+    const holes = [];
+    for (let candidateIndex = outerIndex + 1; candidateIndex < loops.length; candidateIndex += 1) {
+      if (used.has(candidateIndex)) continue;
+      const candidate = loops[candidateIndex];
+      if (pointInPolygon2D(projection2D(candidate.centroid, axis), outer.projected)) {
+        holes.push(candidate);
+        used.add(candidateIndex);
+      }
+    }
+
+    if (holes.length === 1) {
+      triangles.push(...triangulateRingBetweenLoops(outer.points, holes[0].points, axis, desiredNormalSign));
+    } else {
+      triangles.push(...triangulateLoop(outer.points, axis, desiredNormalSign));
+    }
+    used.add(outerIndex);
   }
 
   return triangles;
@@ -789,12 +959,10 @@ export function cutPlaneGeometry(geometry, options = {}) {
     capLoops = loops.loops.length;
     openChains = loops.openChains;
     const capNormalSign = keepSide === 'positive' ? -1 : 1;
-    for (const loop of loops.loops) {
-      for (const triangle of triangulateLoop(loop, axis, capNormalSign)) {
-        if (pushTrianglePositions(positions, triangle[0], triangle[1], triangle[2], areaTolerance)) {
-          capTriangles += 1;
-          outputTriangles += 1;
-        }
+    for (const triangle of triangulateCutLoops(loops.loops, axis, capNormalSign)) {
+      if (pushTrianglePositions(positions, triangle[0], triangle[1], triangle[2], areaTolerance)) {
+        capTriangles += 1;
+        outputTriangles += 1;
       }
     }
   }
@@ -902,6 +1070,93 @@ function collectBoundaryEdges(cornerKeys, triangleTotal) {
   return { boundaryEdges, nonManifoldEdges };
 }
 
+function mergeVertexPlane(planes, normal, constant, tolerance) {
+  for (const plane of planes) {
+    if (plane.normal.dot(normal) > 0.999 && Math.abs(plane.constant - constant) <= tolerance) {
+      plane.weight += 1;
+      return;
+    }
+  }
+  planes.push({
+    constant,
+    normal: normal.clone(),
+    weight: 1,
+  });
+}
+
+function solveSymmetric3(matrix, rhs, target = new THREE.Vector3()) {
+  const [
+    a00, a01, a02,
+    a10, a11, a12,
+    a20, a21, a22,
+  ] = matrix;
+  const det = (
+    a00 * (a11 * a22 - a12 * a21)
+    - a01 * (a10 * a22 - a12 * a20)
+    + a02 * (a10 * a21 - a11 * a20)
+  );
+  if (Math.abs(det) <= 1e-12) return null;
+
+  const [b0, b1, b2] = rhs;
+  target.set(
+    (
+      b0 * (a11 * a22 - a12 * a21)
+      - a01 * (b1 * a22 - a12 * b2)
+      + a02 * (b1 * a21 - a11 * b2)
+    ) / det,
+    (
+      a00 * (b1 * a22 - a12 * b2)
+      - b0 * (a10 * a22 - a12 * a20)
+      + a02 * (a10 * b2 - b1 * a20)
+    ) / det,
+    (
+      a00 * (a11 * b2 - b1 * a21)
+      - a01 * (a10 * b2 - b1 * a20)
+      + b0 * (a10 * a21 - a11 * a20)
+    ) / det,
+  );
+  return Number.isFinite(target.x) && Number.isFinite(target.y) && Number.isFinite(target.z)
+    ? target
+    : null;
+}
+
+function offsetVertexFromPlanes(vertex, thickness, warnings) {
+  if (vertex.planes.length < 3) return null;
+
+  const matrix = new Array(9).fill(0);
+  const rhs = [0, 0, 0];
+  for (const plane of vertex.planes) {
+    const { normal, weight } = plane;
+    const targetConstant = plane.constant - thickness;
+    matrix[0] += normal.x * normal.x * weight;
+    matrix[1] += normal.x * normal.y * weight;
+    matrix[2] += normal.x * normal.z * weight;
+    matrix[3] += normal.y * normal.x * weight;
+    matrix[4] += normal.y * normal.y * weight;
+    matrix[5] += normal.y * normal.z * weight;
+    matrix[6] += normal.z * normal.x * weight;
+    matrix[7] += normal.z * normal.y * weight;
+    matrix[8] += normal.z * normal.z * weight;
+    rhs[0] += normal.x * targetConstant * weight;
+    rhs[1] += normal.y * targetConstant * weight;
+    rhs[2] += normal.z * targetConstant * weight;
+  }
+
+  const solved = solveSymmetric3(matrix, rhs, new THREE.Vector3());
+  if (!solved) return null;
+
+  const displacement = solved.clone().sub(vertex.position);
+  if (displacement.length() > Math.max(thickness * 8, thickness + 1)) {
+    warnings.push('offset-plane-fallback');
+    return null;
+  }
+  if (displacement.dot(vertex.normal) > 1e-6) {
+    warnings.push('offset-plane-outward-fallback');
+    return null;
+  }
+  return solved;
+}
+
 export function hollowGeometry(geometry, thickness, options = {}) {
   const wallThickness = Number(thickness);
   if (!(wallThickness > 0)) {
@@ -938,6 +1193,7 @@ export function hollowGeometry(geometry, thickness, options = {}) {
         count: 0,
         inner: new THREE.Vector3(),
         normal: new THREE.Vector3(),
+        planes: [],
         position: new THREE.Vector3(),
       });
     }
@@ -958,9 +1214,18 @@ export function hollowGeometry(geometry, thickness, options = {}) {
     c.fromBufferAttribute(position, triangle * 3 + 2);
     normal.subVectors(b, a).cross(new THREE.Vector3().subVectors(c, a));
     if (normal.lengthSq() <= areaTolerance) continue;
+    normal.normalize();
+    const constants = [
+      normal.dot(a),
+      normal.dot(b),
+      normal.dot(c),
+    ];
     vertices.get(cornerKeys[triangle * 3]).normal.add(normal);
     vertices.get(cornerKeys[triangle * 3 + 1]).normal.add(normal);
     vertices.get(cornerKeys[triangle * 3 + 2]).normal.add(normal);
+    mergeVertexPlane(vertices.get(cornerKeys[triangle * 3]).planes, normal, constants[0], tolerance);
+    mergeVertexPlane(vertices.get(cornerKeys[triangle * 3 + 1]).planes, normal, constants[1], tolerance);
+    mergeVertexPlane(vertices.get(cornerKeys[triangle * 3 + 2]).planes, normal, constants[2], tolerance);
   }
 
   const warnings = [];
@@ -973,7 +1238,12 @@ export function hollowGeometry(geometry, thickness, options = {}) {
       warnings.push('fallback-normal');
     }
     vertex.normal.normalize();
-    vertex.inner.copy(vertex.position).addScaledVector(vertex.normal, -wallThickness);
+    const planeOffset = offsetVertexFromPlanes(vertex, wallThickness, warnings);
+    if (planeOffset) {
+      vertex.inner.copy(planeOffset);
+    } else {
+      vertex.inner.copy(vertex.position).addScaledVector(vertex.normal, -wallThickness);
+    }
   }
 
   for (let triangle = 0; triangle < triangleTotal; triangle += 1) {

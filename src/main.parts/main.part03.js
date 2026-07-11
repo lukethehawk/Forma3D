@@ -910,7 +910,10 @@ async function applyShorten() {
         position: state.planePosition,
       });
     if (!result?.geometry) throw new Error('Il taglio non ha prodotto geometria.');
-    const repaired = repairMeshGeometry(result.geometry, { planarize: false });
+    const repaired = repairMeshGeometry(result.geometry, {
+      planarize: false,
+      preserveWinding: true,
+    });
     const finalGeometry = repaired?.geometry ?? result.geometry;
     if (repaired?.geometry) result.geometry.dispose();
     setModelGeometry(finalGeometry, false, { preserveSketch: true });
