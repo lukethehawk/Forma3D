@@ -897,6 +897,19 @@ button {
   line-height: 1.35;
 }
 
+.select-instructions {
+  display: grid;
+  gap: 4px;
+}
+
+.select-instructions strong {
+  font-size: 13px;
+}
+
+.select-instructions small + strong {
+  margin-top: 8px;
+}
+
 .hole-form,
 .move-hole-form,
 .primitive-form {

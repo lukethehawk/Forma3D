@@ -1011,10 +1011,10 @@ function updateInspector() {
   const current = config[activeTool] ?? config.select;
   ui.panelTitle.textContent = t(current.title);
   ui.panelDescription.textContent = activeTool === 'select'
-    ? t('Seleziona una faccia singola o passa a Oggetto per prendere il corpo cliccato.')
+    ? t('Click singolo seleziona una faccia. Doppio click seleziona il corpo cliccato.')
     : t(current.description);
-  ui.hint.textContent = activeTool === 'select' && selectionMode === 'object'
-    ? t('Modalita oggetto: clicca un corpo per selezionarlo.')
+  ui.hint.textContent = activeTool === 'select'
+    ? t('Select: click singolo per una faccia, doppio click per il corpo.')
     : t(current.hint);
   ui.selectForm.hidden = activeTool !== 'select';
   ui.selectionMode.value = selectionMode;
@@ -1150,9 +1150,7 @@ function setTool(tool) {
             : 'default';
   updateInspector();
   const statusByTool = {
-    select: selectionMode === 'object'
-      ? 'Modalita oggetto: clicca un corpo per selezionarlo.'
-      : 'Modalita faccia: clicca una superficie del modello.',
+    select: 'Select: click singolo per una faccia, doppio click per il corpo.',
     pushpull: 'Spingi/Tira: clicca una superficie piana.',
     hole: 'Foro: clicca il centro sulla superficie.',
     movehole: 'Sposta foro: clicca la parete interna del foro.',

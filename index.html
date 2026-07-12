@@ -255,12 +255,16 @@
         <p id="panel-description">Clicca una superficie del modello per selezionarla.</p>
 
         <form id="select-form" class="tool-form" hidden>
-          <label for="selection-mode">Modalita selezione</label>
-          <select id="selection-mode">
+          <div class="select-instructions">
+            <strong>Click singolo</strong>
+            <small>Seleziona una faccia del modello.</small>
+            <strong>Doppio click</strong>
+            <small>Seleziona l'intero corpo cliccato.</small>
+          </div>
+          <select id="selection-mode" hidden aria-hidden="true" tabindex="-1">
             <option value="face">Faccia</option>
             <option value="object">Oggetto</option>
           </select>
-          <small>Faccia seleziona una superficie. Oggetto seleziona il corpo cliccato.</small>
         </form>
 
         <form id="pushpull-form" class="tool-form" hidden>

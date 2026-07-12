@@ -174,7 +174,9 @@ Core controller state:
 - `highlight`: current blue selection overlay.
 - `selected`: either `{ type: 'face', point, normal, region }` or
   `{ type: 'object', point, triangles }`.
-- `selectionMode`: `face` or `object`, synchronized with the inspector select.
+- `selectionMode`: internal `face`/`object` state used by tools such as
+  Transform; the Select inspector shows instructions, not a visible mode
+  dropdown.
 - `activeTool`: current tool.
 - `currentFileName`: export base name.
 - `sourceStlName`: original STL/project source name stored in project files.
@@ -770,8 +772,9 @@ Il controller principale usa variabili di stato semplici:
   `gearPlacement`, `cutPlacement`, `textPlacement`, `sketchPoints`,
   `measurementStart`.
 
-La modalita selezione viene salvata in `selectionMode` e sincronizzata con il
-select dell'inspector. Le transizioni automatiche sono importanti:
+La modalita selezione resta nello stato interno `selectionMode`, ma nel pannello
+`Select` non c'e' piu un menu visibile: l'utente usa click singolo per la faccia
+e doppio click per il corpo. Le transizioni automatiche sono importanti:
 
 - click singolo nello strumento `Select` forza selezione faccia;
 - doppio click forza selezione oggetto;
