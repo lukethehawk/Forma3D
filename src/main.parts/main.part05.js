@@ -762,6 +762,7 @@ document.querySelector('#reset-plane').addEventListener('click', () => {
   ui.jointHeight,
   ui.jointNeck,
   ui.jointArc,
+  ui.jointRotation,
   ui.jointDepth,
   ...ui.jointOffsetInputs,
 ].forEach((input) => {

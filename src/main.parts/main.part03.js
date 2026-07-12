@@ -697,14 +697,16 @@ function jointOptionsFromInputs(forceFlat = false) {
   const height = parseDecimal(ui.jointHeight.value, 0);
   const neckWidth = parseDecimal(ui.jointNeck.value, 0);
   const arcBulge = parseDecimal(ui.jointArc.value, 0);
+  const rotation = parseDecimal(ui.jointRotation.value, 0);
   const depth = forceFlat ? 0 : parseDecimal(ui.jointDepth.value, 0);
-  if (!(width > 0) || !(height > 0) || !(neckWidth > 0) || arcBulge < 0) return null;
+  if (!(width > 0) || !(height > 0) || !(neckWidth > 0) || arcBulge < 0 || !Number.isFinite(rotation)) return null;
   if (!forceFlat && !(depth > 0)) return null;
   return {
     arcBulge,
     depth,
     height,
     neckWidth,
+    rotationDeg: rotation,
     width,
   };
 }
@@ -766,7 +768,8 @@ function applyJoint() {
   }
   const firstJointTriangle = model ? triangleCount(model.geometry) : 0;
   const selectedPoint = jointPlacement?.basePoint?.clone?.() ?? new THREE.Vector3();
-  const detail = `${ui.jointType.value}, ${formatMillimeters(parseDecimal(ui.jointWidth.value, 0))} x ${formatMillimeters(parseDecimal(ui.jointHeight.value, 0))}`;
+  const rotation = parseDecimal(ui.jointRotation.value, 0);
+  const detail = `${ui.jointType.value}, ${formatMillimeters(parseDecimal(ui.jointWidth.value, 0))} x ${formatMillimeters(parseDecimal(ui.jointHeight.value, 0))}, ${t('Rotazione')} ${formatDecimal(rotation)} deg`;
   if (operation === 'face') {
     const applied = appendGeometryToModel(
       geometry,

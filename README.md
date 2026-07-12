@@ -229,8 +229,8 @@ The `2D` menu contains:
 - Line guides
 - Flat planes: rectangle, square and circle
 - Joint profiles: arc, dovetail and T-slot presets for tabs, slots and keyed
-  fits. They can be applied as a flat face for Push/Pull, or extruded directly
-  as add/subtract geometry.
+  fits. They can be rotated in their placement plane, applied as a flat face for
+  Push/Pull, or extruded directly as add/subtract geometry.
 
 Line guides persist as construction geometry and can create closed faces.
 
@@ -505,8 +505,9 @@ Il menu `2D` contiene:
 - Linee guida
 - Piani piatti: rettangolo, quadrato e cerchio
 - Profili incastro: preset arco, coda di rondine e T-slot per linguette, cave e
-  accoppiamenti. Possono essere applicati come faccia piatta per Spingi/Tira,
-  oppure estrusi direttamente in aggiunta/sottrazione.
+  accoppiamenti. Possono essere ruotati nel piano di appoggio, applicati come
+  faccia piatta per Spingi/Tira, oppure estrusi direttamente in
+  aggiunta/sottrazione.
 
 Le linee restano come guide di costruzione e possono creare facce chiuse.
 

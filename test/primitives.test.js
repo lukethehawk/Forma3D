@@ -105,6 +105,18 @@ test('createJointProfileGeometry extrudes along the requested axis', () => {
   assert.equal(Math.round(geometry.boundingBox.max.x), 8);
 });
 
+test('createJointProfileGeometry rotates the profile in its placement plane', () => {
+  const geometry = createJointProfileGeometry(
+    new THREE.Vector3(0, 0, 0),
+    'dovetail',
+    { width: 30, height: 10, neckWidth: 8, depth: 0, rotationDeg: 90 },
+    new THREE.Vector3(0, 0, 1),
+  );
+  geometry.computeBoundingBox();
+  assert.equal(Math.round(geometry.boundingBox.max.x - geometry.boundingBox.min.x), 10);
+  assert.equal(Math.round(geometry.boundingBox.max.y - geometry.boundingBox.min.y), 30);
+});
+
 test('createGearGeometryFromBase creates a valid default gear', () => {
   const geometry = createGearGeometryFromBase(new THREE.Vector3(0, 0, 2));
   geometry.computeBoundingBox();

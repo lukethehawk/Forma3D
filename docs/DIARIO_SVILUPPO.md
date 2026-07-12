@@ -383,6 +383,10 @@ presets (`arc`, `dovetail`, `t-slot`) through `createJointProfileGeometry()` in
 - an extruded add body;
 - an extruded subtract cutter.
 
+The `rotationDeg` option rotates the local 2D profile before it is mapped to
+the picked plane, so preview and final geometry keep the same orientation on
+horizontal, vertical and face-aligned placements.
+
 This is deliberately preset-based for now. It does not replace a freeform arc
 sketcher; it covers common tabs, slots and keyed interfaces with predictable
 parameters.
@@ -1443,6 +1447,10 @@ Lo strumento `Incastro` vive nello stesso menu `2D` e usa
   `Spingi/Tira`;
 - output `add`: estrude il profilo e lo unisce al modello come solido;
 - output `subtract`: estrude il profilo e lo usa come cutter booleano.
+
+L'opzione `rotationDeg` ruota il profilo 2D locale prima della mappatura sul
+piano scelto: anteprima e geometria finale mantengono quindi lo stesso
+orientamento su piani orizzontali, verticali o allineati alla faccia cliccata.
 
 La funzione e' volutamente parametrica/preset-based: copre linguette, cave e
 accoppiamenti ricorrenti senza introdurre ancora un editor libero di archi. La

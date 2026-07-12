@@ -426,6 +426,7 @@ const ui = {
   jointHeight: document.querySelector('#joint-height'),
   jointNeck: document.querySelector('#joint-neck'),
   jointArc: document.querySelector('#joint-arc'),
+  jointRotation: document.querySelector('#joint-rotation'),
   jointDepth: document.querySelector('#joint-depth'),
   jointOffsetInputs: [
     document.querySelector('#joint-offset-x'),
@@ -1064,6 +1065,7 @@ const staticTranslations = {
     'Aggiungi solido': 'Add solid',
     'Larghezza collo': 'Neck width',
     'Raggio / arco': 'Radius / arc',
+    Rotazione: 'Rotation',
     'Profondita': 'Depth',
     'Applica incastro': 'Apply joint',
     Incastro: 'Joint',

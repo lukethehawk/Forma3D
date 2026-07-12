@@ -210,7 +210,11 @@ export function createJointProfileGeometry(
   axis = new THREE.Vector3(0, 0, 1),
 ) {
   const depth = Math.max(Number(options.depth) || 0, 0);
-  const points = localJointProfilePoints(type, options);
+  const rotationRad = THREE.MathUtils.degToRad(Number(options.rotationDeg) || 0);
+  const points = localJointProfilePoints(type, options).map((point) => point.clone().rotateAround(
+    new THREE.Vector2(0, 0),
+    rotationRad,
+  ));
   const shape = new THREE.Shape();
   shape.moveTo(points[0].x, points[0].y);
   for (let index = 1; index < points.length; index += 1) {
