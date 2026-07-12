@@ -79,6 +79,31 @@ function countTrianglesOnAxisPlane(geometry, axisName, value, tolerance = 1e-6) 
   return count;
 }
 
+function countOpenEdgesByPosition(geometry, tolerance = 1e-5) {
+  const position = geometry.getAttribute('position');
+  const index = geometry.getIndex();
+  const pointKey = (vertexIndex) => [
+    Math.round(position.getX(vertexIndex) / tolerance),
+    Math.round(position.getY(vertexIndex) / tolerance),
+    Math.round(position.getZ(vertexIndex) / tolerance),
+  ].join(':');
+  const edgeMap = new Map();
+  for (let triangle = 0; triangle < triangleCount(geometry); triangle += 1) {
+    const vertices = [0, 1, 2].map((corner) => {
+      const offset = triangle * 3 + corner;
+      return pointKey(index ? index.getX(offset) : offset);
+    });
+    for (const [from, to] of [[0, 1], [1, 2], [2, 0]]) {
+      if (vertices[from] === vertices[to]) continue;
+      const key = vertices[from] < vertices[to]
+        ? `${vertices[from]}|${vertices[to]}`
+        : `${vertices[to]}|${vertices[from]}`;
+      edgeMap.set(key, (edgeMap.get(key) ?? 0) + 1);
+    }
+  }
+  return [...edgeMap.values()].filter((count) => count === 1).length;
+}
+
 function uniqueAxisValues(geometry, axis) {
   const position = geometry.getAttribute('position');
   const values = new Set();
@@ -313,6 +338,20 @@ test('removeMiddleSectionGeometry removes a centered section and closes the gap'
   assert.ok(Math.abs(output.boundingBox.max.x - 3) < 1e-6);
   assert.equal(Math.round(output.boundingBox.max.x - output.boundingBox.min.x), 8);
   assert.ok(result.report.removedTriangles > 0);
+});
+
+test('removeMiddleSectionGeometry caps non-matching cut profiles before closing the gap', () => {
+  const geometry = new THREE.CylinderGeometry(2, 4, 10, 32).toNonIndexed();
+  const result = removeMiddleSectionGeometry(geometry, {
+    axis: 'y',
+    start: -1,
+    end: 1,
+  });
+
+  assert.ok(result);
+  assert.ok(result.report.negativeCapTriangles > 0);
+  assert.ok(result.report.positiveCapTriangles > 0);
+  assert.equal(countOpenEdgesByPosition(result.geometry), 0);
 });
 
 test('removeMiddleSectionGeometry returns null when one side would be empty', () => {

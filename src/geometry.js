@@ -1365,13 +1365,13 @@ export function removeMiddleSectionGeometry(geometry, options = {}) {
   const axisKey = ['x', 'y', 'z'][axis];
   const negative = cutPlaneGeometry(geometry, {
     axis: axisKey,
-    cap: false,
+    cap: options.cap !== false,
     keepSide: 'negative',
     position: start,
   });
   const positive = cutPlaneGeometry(geometry, {
     axis: axisKey,
-    cap: false,
+    cap: options.cap !== false,
     keepSide: 'positive',
     position: end,
   });
@@ -1389,7 +1389,9 @@ export function removeMiddleSectionGeometry(geometry, options = {}) {
   const result = combineGeometries([negative.geometry, positive.geometry]);
   const report = {
     gap,
+    negativeCapTriangles: negative.report.capTriangles,
     negativeTriangles: triangleCount(negative.geometry),
+    positiveCapTriangles: positive.report.capTriangles,
     positiveTriangles: triangleCount(positive.geometry),
     outputTriangles: result ? triangleCount(result) : 0,
     removedTriangles: negative.report.removedTriangles + positive.report.removedTriangles,
