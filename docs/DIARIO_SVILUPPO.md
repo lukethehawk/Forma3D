@@ -27,6 +27,8 @@ connected-body workflows:
 - `Delete` on an object removes only that body, not the whole model.
 - `Transform` automatically switches to Object mode and edits only the selected
   body. If a face was selected, it is converted to the connected body first.
+  Transform also exposes quick print-prep actions: place selected face on bed,
+  rotate selected face downward, center on X/Y origin and scale to max X/Y/Z.
 - Newly applied 2D planes are immediately selected as faces, so Push/Pull can be
   used right away.
 - Selection overlays are deliberately strong: selected faces use saturated blue
@@ -41,7 +43,8 @@ connected-body workflows:
 - Export paths now include sanitized file names, full-model STL, full-model OBJ
   and STL export for the selected face/body.
 - The left toolbar ends with an `Objects` button. It opens a compact,
-  scrollable drawer with connected bodies, rename, select, export and delete.
+  scrollable drawer with connected bodies, rename, select, pattern, export and
+  delete. Pattern opens a side drawer for linear/circular duplication.
 - The file name in the topbar now opens a model-info popover with file size,
   triangles, vertices and complexity class. Very large meshes defer automatic
   connected-body analysis to keep import responsive.
@@ -71,6 +74,8 @@ a triangle mesh, so the app focuses on practical mesh operations:
 - Boolean operations: subtract, hole, move hole and text engraving.
 - `Shorten`: direct X/Y/Z plane cut for reducing STL length/depth without
   scaling, with side cut or middle-section removal and gap closing.
+- `Split`: whole-model plane cut for printer-bed preparation, with cap option,
+  optional separation gap and negative/positive side export.
 - 2D planes: rectangle, square and circle, ready for Push/Pull.
 - Line guides for construction and closed faces.
 - Measurements with signed X/Y/Z components.
@@ -137,7 +142,7 @@ The vertical toolbar is grouped:
 
 - direct tools: `Select`, `Push/Pull`, `Measure`, `Transform`, view navigation;
 - `Solids`: `Box`, `Cylinder`, `Cone`, `Pyramid`, `Gear`, `3D Text`;
-- `Booleans`: `Subtract`, `Hole`, `Move hole`;
+- `Booleans`: `Subtract`, `Shorten`, `Split`, `Hollow`, `Hole`, `Move hole`;
 - `2D`: `Line`, `Planes`.
 - bottom drawer button: `Objects`.
 
@@ -147,7 +152,8 @@ layout.
 
 `Objects` is not a modeling tool and does not use `data-tool`. It opens a slim
 left drawer inside the viewport. The list is scrollable and each connected body
-row supports rename, select, STL export and delete.
+row supports rename, select, pattern, STL export and delete. Pattern opens a
+second side drawer next to Objects instead of occupying the main inspector.
 
 The topbar keeps `Open STL` and `Remove model` as primary actions. The
 dedicated `Help` button opens a command popup with icon cards for selection,
@@ -412,6 +418,26 @@ Known limits:
 - middle-section fusion works best when the two cut cross-sections are similar;
 - open chains are tracked internally but not exposed in the UI yet.
 
+### Split / Cut and Separate
+
+`Split` lives in the `Booleans` menu but, like `Shorten`, it does not use CSG.
+It is a print-preparation tool for parts that exceed the printer bed. The UI
+chooses axis and plane coordinate, shows a lightweight blue plane preview,
+optionally caps the cut surfaces and optionally separates the two halves.
+
+Implementation notes:
+
+- both halves are produced with `cutPlaneGeometry()` by keeping the negative and
+  positive side of the same plane;
+- `Cap cut surfaces` maps to the `cap` option in `cutPlaneGeometry()`;
+- `Separate into two bodies` translates the positive half by a small axis gap
+  before recombining, because Forma3D still stores one STL mesh rather than a
+  true multi-body scene graph;
+- `Export negative side` and `Export positive side` generate temporary half
+  geometries and download them without changing the current scene;
+- the operation is whole-model by design, while `Shorten` remains the targeted
+  body workflow.
+
 ### Hollow / Mesh Shell
 
 `Hollow` lives in the `Booleans` menu as a whole-model operation. It is not CSG
@@ -493,11 +519,36 @@ dominant axis and alignment flags.
 - translation X/Y/Z;
 - rotation X/Y/Z;
 - uniform scale.
+- quick print-prep actions: place selected face on Z=0, rotate selected face
+  downward, center target on the X/Y origin and scale uniformly to a maximum
+  X/Y/Z size.
 
 The transform is applied directly to the selected triangles with
 `transformTrianglesInGeometry()`. Unselected triangles are copied unchanged.
 Rotation and scale use the selected body bounding box as center. Values reset
 after apply.
+
+For face-based quick actions, `setTool('transform')` stores the previously
+selected face normal in `transformFaceReference` before converting the selection
+to its connected body. This keeps the Transform tool object-first while still
+allowing the print-prep commands to orient the object from a picked face.
+
+## Pattern / Duplicate Series
+
+Pattern is launched from a row in the `Objects` drawer. It is deliberately tied
+to connected bodies rather than faces. The drawer opens beside Objects and keeps
+the main inspector free.
+
+- Linear pattern creates additional copies using progressive X/Y/Z offsets.
+- Circular pattern creates additional copies around the selected body center
+  using count, radius and axis.
+- The original body remains in place; the requested copy count means additional
+  copies.
+- Copies are triangle clones appended through `combineGeometries()`, then
+  `setModelGeometry()` refreshes connected components.
+
+This is not a parametric pattern feature yet. Once applied, copies become normal
+STL mesh bodies and are edited/exported like any other connected component.
 
 ## Snapping
 
@@ -573,7 +624,9 @@ di intervenire ancora:
 - `Delete` su un oggetto rimuove solo quel corpo, non tutto il modello;
 - `Transform` passa automaticamente a modalita oggetto e agisce solo sul corpo
   selezionato. Se prima era selezionata una faccia, la selezione viene convertita
-  nel corpo connesso;
+  nel corpo connesso. Include anche comandi rapidi per appoggiare la faccia
+  selezionata sul piano, ruotarla verso il basso, centrare su origine X/Y e
+  scalare a dimensione massima X/Y/Z;
 - i piani 2D appena applicati vengono selezionati subito come facce, per
   favorire `Push/Pull`;
 - le selezioni sono piu visibili: facce con overlay blu piu saturo e wireframe,
@@ -588,7 +641,8 @@ di intervenire ancora:
 - l'export ora include nomi file ripuliti, STL completo, OBJ completo e STL
   della selezione.
 - la toolbar sinistra termina con `Objects`, che apre un drawer compatto e
-  scrollabile con corpi connessi, rinomina, selezione, export ed eliminazione.
+  scrollabile con corpi connessi, rinomina, selezione, pattern, export ed
+  eliminazione. Pattern apre un drawer laterale per copie lineari/circolari.
 - il nome file nella topbar apre un popover con dimensione, triangoli, vertici e
   classe di complessita. Le mesh molto grandi rimandano l'analisi automatica dei
   corpi connessi per mantenere reattivo l'import.
@@ -618,6 +672,8 @@ il file come mesh triangolare e offre strumenti pratici:
 - `Accorcia`: taglio piano X/Y/Z per ridurre lunghezza/profondita senza
   scalare, con taglio laterale oppure rimozione della sezione mediana e
   chiusura del vuoto;
+- `Separa`: taglio piano sull'intero modello per preparazione alla stampa, con
+  chiusura opzionale, piccolo distacco fra meta ed export lato negativo/positivo;
 - piani 2D rettangolari, quadrati o tondi, estrudibili con Spingi/Tira;
 - strumento Linea per sagome chiuse estrudibili;
 - strumento Testo 3D con font, profondita, larghezza lettere ed effetti;
@@ -700,7 +756,8 @@ La toolbar verticale non espone piu' tutte le azioni in una lista piatta:
   `Trasforma`, navigazione vista;
 - menu `Solidi`: `Box`, `Cilindro`, `Cono`, `Piramide`,
   `Ingranaggio`, `Testo 3D`;
-- menu `Booleane`: `Sottrai`, `Foro`, `Sposta foro`.
+- menu `Booleane`: `Sottrai`, `Accorcia`, `Separa`, `Svuota`, `Foro`,
+  `Sposta foro`.
 - menu `2D`: `Linea`, `Piani`.
 - tasto finale in basso: `Objects`.
 
@@ -712,7 +769,8 @@ booleane e strumenti 2D senza allungare la toolbar.
 
 `Objects` non e' uno strumento di modellazione e non usa `data-tool`. Apre un
 drawer sottile nel viewport, con lista scrollabile. Ogni corpo connesso ha
-rinomina, selezione, export STL ed eliminazione.
+rinomina, selezione, pattern, export STL ed eliminazione. Pattern apre un
+secondo drawer laterale accanto a Objects invece di occupare l'inspector.
 
 La topbar mantiene `Apri STL` e `Rimuovi modello` come azioni primarie. Il
 pulsante dedicato `Help` apre un popup con schede e icone per selezione,
@@ -1203,6 +1261,26 @@ Limiti noti:
   simili;
 - le catene aperte sono tracciate internamente ma non ancora esposte nella UI.
 
+### Separa / taglia e dividi
+
+`Separa` vive nel menu `Booleans` ma, come `Accorcia`, non usa CSG. Serve per
+preparare alla stampa pezzi troppo grandi per il piano della stampante. La UI
+sceglie asse e coordinata del piano, mostra una preview blu leggera, puo
+chiudere le superfici tagliate e puo separare le due meta.
+
+Note implementative:
+
+- entrambe le meta vengono generate con `cutPlaneGeometry()`, mantenendo lato
+  negativo e positivo dello stesso piano;
+- `Chiudi superfici tagliate` corrisponde all'opzione `cap`;
+- `Separa in due corpi` trasla leggermente la meta positiva prima della
+  ricombinazione, perche Forma3D conserva ancora una singola mesh STL e non un
+  vero scene graph multi-corpo;
+- `Export lato negativo` e `Export lato positivo` creano geometrie temporanee e
+  le scaricano senza modificare la scena corrente;
+- l'operazione lavora sull'intero modello, mentre `Accorcia` resta il flusso
+  mirato sul corpo selezionato.
+
 ### Svuota / guscio mesh
 
 `Svuota` vive nel menu `Booleans` come operazione sul modello intero. Non usa
@@ -1503,6 +1581,9 @@ il modello, con input numerici:
 - spostamento X/Y/Z in millimetri;
 - rotazione X/Y/Z in gradi;
 - scala uniforme.
+- comandi rapidi per preparazione stampa: appoggia faccia selezionata su Z=0,
+  ruota faccia selezionata verso il basso, centra il target sull'origine X/Y e
+  scala uniformemente a una dimensione massima X/Y/Z.
 
 Entrando in `Transform`, `setTool('transform')` forza `selectionMode = 'object'`.
 Se era selezionata una faccia, la selezione viene convertita nel componente
@@ -1524,6 +1605,26 @@ spostamento/rotazione `0` e scala `1`, cosi' la stessa trasformazione non viene
 riapplicata per errore. L'applicazione non chiama `fitView()`, altrimenti uno
 spostamento puro sarebbe visivamente nascosto dal ricentramento automatico della
 camera.
+
+Per i comandi rapidi basati su faccia, `setTool('transform')` salva la normale
+della faccia selezionata in `transformFaceReference` prima di convertire la
+selezione al corpo connesso. Cosi Transform resta object-first ma puo comunque
+orientare il corpo in base a una faccia scelta.
+
+## Pattern / duplica in serie
+
+Pattern parte da una riga del drawer `Objects`. E' legato ai corpi connessi, non
+alle facce. Il drawer si apre accanto a Objects e lascia libero l'inspector.
+
+- Pattern lineare: crea copie aggiuntive con offset progressivo X/Y/Z.
+- Pattern circolare: crea copie aggiuntive attorno al centro del corpo scelto
+  usando numero, raggio e asse.
+- Il corpo originale resta fermo; il numero copie indica copie aggiuntive.
+- Le copie sono cloni triangolari aggiunti con `combineGeometries()`, poi
+  `setModelGeometry()` ricalcola corpi connessi e snap.
+
+Non e' ancora un pattern parametrico: dopo l'applicazione, le copie sono normali
+corpi STL e si modificano/esportano come qualunque altro componente connesso.
 
 ## Snap
 

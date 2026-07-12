@@ -1069,6 +1069,191 @@ async function applyShorten() {
   }
 }
 
+function splitAxisIndex() {
+  return { x: 0, y: 1, z: 2 }[ui.splitAxis.value] ?? 1;
+}
+
+function splitAxisLabel(axis = splitAxisIndex()) {
+  return ['X', 'Y', 'Z'][axis] ?? 'Y';
+}
+
+function splitStateFromInputs() {
+  if (!model) return null;
+  model.geometry.computeBoundingBox();
+  const box = model.geometry.boundingBox.clone();
+  const axis = splitAxisIndex();
+  const position = parseDecimal(ui.splitPosition.value, NaN);
+  const min = axisComponent(box.min, axis);
+  const max = axisComponent(box.max, axis);
+  const length = max - min;
+  const tolerance = Math.max(length * 1e-6, 1e-6);
+  if (!Number.isFinite(position)) {
+    return { error: t('La posizione taglio deve essere una coordinata valida.') };
+  }
+  if (position <= min + tolerance || position >= max - tolerance) {
+    return {
+      error: currentLanguage === 'en'
+        ? `Cut position must be inside the model between ${formatMillimeters(min)} and ${formatMillimeters(max)}.`
+        : `La posizione taglio deve stare dentro il modello tra ${formatMillimeters(min)} e ${formatMillimeters(max)}.`,
+    };
+  }
+  return {
+    axis,
+    axisKey: ['x', 'y', 'z'][axis],
+    box,
+    cap: Boolean(ui.splitCap.checked),
+    length,
+    min,
+    max,
+    position,
+    separate: Boolean(ui.splitSeparate.checked),
+  };
+}
+
+function resetSplitDefaults() {
+  if (!model) {
+    ui.applySplit.disabled = true;
+    ui.exportSplitNegative.disabled = true;
+    ui.exportSplitPositive.disabled = true;
+    ui.splitReadout.textContent = t('Apri o crea un modello prima di usare Separa.');
+    return;
+  }
+  model.geometry.computeBoundingBox();
+  const axis = splitAxisIndex();
+  const center = axisComponent(model.geometry.boundingBox.getCenter(new THREE.Vector3()), axis);
+  ui.splitPosition.value = formatDecimal(center);
+  ui.applySplit.disabled = false;
+  ui.exportSplitNegative.disabled = false;
+  ui.exportSplitPositive.disabled = false;
+}
+
+function drawSplitPreview() {
+  if (splitPreview) {
+    scene.remove(splitPreview);
+    disposeObject(splitPreview);
+    splitPreview = null;
+  }
+  if (activeTool !== 'split') return;
+  const state = splitStateFromInputs();
+  if (!state || state.error) {
+    ui.applySplit.disabled = true;
+    ui.exportSplitNegative.disabled = true;
+    ui.exportSplitPositive.disabled = true;
+    ui.splitReadout.textContent = state?.error ?? t('Apri o crea un modello prima di usare Separa.');
+    requestRender();
+    return;
+  }
+  const group = new THREE.Group();
+  const padding = Math.max(state.length * 0.03, 1);
+  const fullBox = state.box.clone().expandByScalar(padding);
+  const planeThickness = Math.max(state.length * 0.004, 0.15);
+  const planeBox = fullBox.clone();
+  setAxisComponent(planeBox.min, state.axis, state.position - planeThickness * 0.5);
+  setAxisComponent(planeBox.max, state.axis, state.position + planeThickness * 0.5);
+  const planeMesh = makePreviewBox(planeBox, 0x1679b8);
+  if (planeMesh) group.add(planeMesh);
+  if (state.separate) {
+    const positiveBox = fullBox.clone();
+    setAxisComponent(positiveBox.min, state.axis, state.position);
+    const positiveMesh = makePreviewBox(positiveBox, 0xe46f2b);
+    if (positiveMesh) group.add(positiveMesh);
+  }
+  splitPreview = group;
+  addTransientOverlay(splitPreview, 'split-preview');
+  ui.applySplit.disabled = false;
+  ui.exportSplitNegative.disabled = false;
+  ui.exportSplitPositive.disabled = false;
+  ui.splitInfo.textContent = t('Taglia il modello con un piano e opzionalmente separa le due meta.');
+  ui.splitReadout.textContent = currentLanguage === 'en'
+    ? `${splitAxisLabel(state.axis)} cut at ${formatMillimeters(state.position)}. ${state.cap ? 'Cut faces will be capped.' : 'Cut faces stay open.'}`
+    : `Taglio ${splitAxisLabel(state.axis)} a ${formatMillimeters(state.position)}. ${state.cap ? 'Le superfici tagliate saranno chiuse.' : 'Le superfici tagliate restano aperte.'}`;
+}
+
+function splitHalfGeometry(side) {
+  const state = splitStateFromInputs();
+  if (!state || state.error) return null;
+  const result = cutPlaneGeometry(model.geometry, {
+    axis: state.axisKey,
+    cap: state.cap,
+    keepSide: side,
+    position: state.position,
+  });
+  return result?.geometry ?? null;
+}
+
+function exportSplitHalf(side) {
+  if (!model) return;
+  const state = splitStateFromInputs();
+  if (!state || state.error) {
+    setStatus(state?.error ?? 'Imposta un taglio valido.');
+    return;
+  }
+  const geometry = splitHalfGeometry(side);
+  if (!geometry) {
+    setStatus('Il taglio non ha prodotto una meta esportabile.');
+    return;
+  }
+  const label = side === 'negative' ? 'negative' : 'positive';
+  exportGeometryAsStl(geometry, `${sanitizeFileBase(currentFileName)}-${splitAxisLabel(state.axis).toLowerCase()}-${label}.stl`);
+  geometry.dispose();
+}
+
+async function applySplit() {
+  if (!model) {
+    setStatus('Apri o crea un modello prima di usare Separa.');
+    return;
+  }
+  const state = splitStateFromInputs();
+  if (!state || state.error) {
+    setStatus(state?.error ?? 'Imposta un taglio valido.');
+    return;
+  }
+  showBusy('Taglio in corso...', 'Sto generando le due meta del modello.');
+  await waitForNextFrame();
+  snapshot({
+    title: t('Tagliato modello'),
+    detail: `${t('asse')} ${splitAxisLabel(state.axis)}, ${t('centro')} ${formatMillimeters(state.position)}`,
+  });
+  try {
+    const negative = cutPlaneGeometry(model.geometry, {
+      axis: state.axisKey,
+      cap: state.cap,
+      keepSide: 'negative',
+      position: state.position,
+    });
+    const positive = cutPlaneGeometry(model.geometry, {
+      axis: state.axisKey,
+      cap: state.cap,
+      keepSide: 'positive',
+      position: state.position,
+    });
+    if (!negative?.geometry || !positive?.geometry) throw new Error('Il taglio non ha prodotto due meta valide.');
+    if (state.separate) {
+      const gap = Math.max(state.length * 0.01, 0.5);
+      const offset = new THREE.Vector3();
+      setAxisComponent(offset, state.axis, gap);
+      positive.geometry.translate(offset.x, offset.y, offset.z);
+    }
+    const finalGeometry = combineGeometries([negative.geometry, positive.geometry]);
+    negative.geometry.dispose();
+    positive.geometry.dispose();
+    if (!finalGeometry) throw new Error('Il taglio non ha prodotto geometria.');
+    setModelGeometry(finalGeometry, false, { preserveSketch: true });
+    updateHistoryButtons();
+    setStatus(state.separate
+      ? t('Modello tagliato e separato in due corpi.')
+      : t('Modello tagliato. Le due meta sono rimaste nella posizione originale.'));
+  } catch (error) {
+    console.error(`Errore Separa: ${error?.stack ?? error}`);
+    const previous = popUndoSnapshotForRollback();
+    if (previous) setModelGeometry(previous, false, { preserveSketch: true });
+    updateHistoryButtons();
+    setStatus('Taglio non riuscito: prova una posizione piu interna o abilita la chiusura superfici.');
+  } finally {
+    hideBusy();
+  }
+}
+
 function hollowThicknessFromInput() {
   return parseDecimal(ui.hollowThickness.value, 0);
 }

@@ -135,6 +135,104 @@ function exportObjectByIndex(index) {
   geometry.dispose();
 }
 
+function matrixForCircularPattern(center, axis, radius, angle) {
+  const radial = new THREE.Vector3(radius, 0, 0);
+  if (axis === 'x') radial.set(0, radius, 0);
+  if (axis === 'y') radial.set(radius, 0, 0);
+  const rotationAxis = axis === 'x'
+    ? new THREE.Vector3(1, 0, 0)
+    : axis === 'y'
+      ? new THREE.Vector3(0, 1, 0)
+      : new THREE.Vector3(0, 0, 1);
+  radial.applyAxisAngle(rotationAxis, angle);
+  return new THREE.Matrix4().makeTranslation(
+    radial.x,
+    radial.y,
+    radial.z,
+  ).multiply(
+    new THREE.Matrix4()
+      .makeTranslation(center.x, center.y, center.z)
+      .multiply(new THREE.Matrix4().makeRotationAxis(rotationAxis, angle))
+      .multiply(new THREE.Matrix4().makeTranslation(-center.x, -center.y, -center.z)),
+  );
+}
+
+function cloneGeometryWithMatrix(geometry, matrix) {
+  const clone = geometry.clone();
+  clone.applyMatrix4(matrix);
+  clone.computeVertexNormals();
+  clone.computeBoundingBox();
+  clone.computeBoundingSphere();
+  return clone;
+}
+
+function applyPattern() {
+  const item = patternObjectIndex !== null ? objectItems[patternObjectIndex] : null;
+  if (!model || !item) {
+    setStatus('Scegli un oggetto dal pannello Oggetti prima di creare un pattern.');
+    return;
+  }
+  const count = Math.min(Math.max(Math.floor(parseDecimal(ui.patternCount.value, 0)), 1), 100);
+  const source = extractTrianglesFromGeometry(model.geometry, item.triangles);
+  if (!source) {
+    setStatus('Non riesco a leggere il corpo selezionato.');
+    return;
+  }
+  source.computeBoundingBox();
+  const center = source.boundingBox.getCenter(new THREE.Vector3());
+  const copies = [];
+  if (ui.patternType.value === 'circular') {
+    const radius = parseDecimal(ui.patternRadius.value, 0);
+    if (!(radius > 0)) {
+      source.dispose();
+      setStatus('Inserisci un raggio valido per il pattern circolare.');
+      return;
+    }
+    const totalSlots = count + 1;
+    for (let index = 1; index <= count; index += 1) {
+      const angle = (Math.PI * 2 * index) / totalSlots;
+      copies.push(cloneGeometryWithMatrix(
+        source,
+        matrixForCircularPattern(center, ui.patternAxis.value, radius, angle),
+      ));
+    }
+  } else {
+    const offset = inputVector(ui.patternOffsetInputs);
+    if (offset.lengthSq() <= 1e-10) {
+      source.dispose();
+      setStatus('Inserisci almeno una distanza X/Y/Z diversa da zero.');
+      return;
+    }
+    for (let index = 1; index <= count; index += 1) {
+      copies.push(cloneGeometryWithMatrix(
+        source,
+        new THREE.Matrix4().makeTranslation(
+          offset.x * index,
+          offset.y * index,
+          offset.z * index,
+        ),
+      ));
+    }
+  }
+  const finalGeometry = combineGeometries([model.geometry, ...copies]);
+  source.dispose();
+  copies.forEach((geometry) => geometry.dispose());
+  if (!finalGeometry) {
+    setStatus('Il pattern non ha prodotto geometria valida.');
+    return;
+  }
+  snapshot({
+    title: t('Creato pattern'),
+    detail: `${item.name}, ${count} ${t('copie')}`,
+  });
+  setModelGeometry(finalGeometry, false, { preserveSketch: true });
+  updateHistoryButtons();
+  setPatternDrawerOpen(false);
+  setStatus(currentLanguage === 'en'
+    ? `Pattern created: ${count} copies.`
+    : `Pattern creato: ${count} copie.`);
+}
+
 function geometryToProjectPositions(geometry) {
   return Array.from(geometry.getAttribute('position').array);
 }
@@ -338,6 +436,11 @@ ui.objectsList.addEventListener('click', (event) => {
   const action = button.dataset.action;
   if (!Number.isInteger(index)) return;
   if (action === 'select') selectObjectByIndex(index);
+  if (action === 'pattern') {
+    selectObjectByIndex(index);
+    setObjectsDrawerOpen(true);
+    setPatternDrawerOpen(true, index);
+  }
   if (action === 'export') exportObjectByIndex(index);
   if (action === 'delete') deleteObjectByIndex(index);
 });
@@ -371,6 +474,7 @@ document.addEventListener('click', (event) => {
   }
   if (objectsDrawerOpen
     && !ui.objectsDrawer.contains(event.target)
+    && !ui.patternDrawer.contains(event.target)
     && !ui.objectsToggle.contains(event.target)) {
     setObjectsDrawerOpen(false);
   }
@@ -378,6 +482,11 @@ document.addEventListener('click', (event) => {
     && !ui.historyDrawer.contains(event.target)
     && !ui.historyToggle.contains(event.target)) {
     setHistoryDrawerOpen(false);
+  }
+  if (patternDrawerOpen
+    && !ui.patternDrawer.contains(event.target)
+    && !ui.objectsDrawer.contains(event.target)) {
+    setPatternDrawerOpen(false);
   }
   if (!ui.helpPopover.hidden
     && !ui.helpPopover.contains(event.target)
@@ -399,6 +508,10 @@ ui.selectionMode.addEventListener('change', () => {
     : 'Modalita faccia: clicca una superficie del modello.'));
 });
 ui.applyTransform.addEventListener('click', transformCurrentModel);
+ui.alignFaceGround.addEventListener('click', () => rotateSelectedFaceDown(true));
+ui.rotateFaceDown.addEventListener('click', () => rotateSelectedFaceDown(false));
+ui.centerOrigin.addEventListener('click', centerTransformTargetOnOrigin);
+ui.scaleToMax.addEventListener('click', scaleTransformTargetToMax);
 [
   ...ui.transformTranslateInputs,
   ...ui.transformRotateInputs,
@@ -406,6 +519,28 @@ ui.applyTransform.addEventListener('click', transformCurrentModel);
 ].forEach((input) => {
   input.addEventListener('input', drawTransformPreview);
   input.addEventListener('change', drawTransformPreview);
+});
+ui.patternClose.addEventListener('click', () => setPatternDrawerOpen(false));
+ui.patternType.addEventListener('change', renderPatternDrawer);
+ui.applyPattern.addEventListener('click', applyPattern);
+ui.splitAxis.addEventListener('change', () => {
+  resetSplitDefaults();
+  drawSplitPreview();
+});
+[
+  ui.splitPosition,
+  ui.splitCap,
+  ui.splitSeparate,
+].forEach((input) => {
+  input.addEventListener('input', drawSplitPreview);
+  input.addEventListener('change', drawSplitPreview);
+});
+ui.applySplit.addEventListener('click', applySplit);
+ui.exportSplitNegative.addEventListener('click', () => exportSplitHalf('negative'));
+ui.exportSplitPositive.addEventListener('click', () => exportSplitHalf('positive'));
+document.querySelector('#reset-split').addEventListener('click', () => {
+  resetSplitDefaults();
+  drawSplitPreview();
 });
 document.querySelectorAll('.tool[data-tool]').forEach((button) => {
   button.addEventListener('click', () => setTool(button.dataset.tool));

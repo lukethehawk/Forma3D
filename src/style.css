@@ -649,7 +649,8 @@ button {
 }
 
 .objects-drawer,
-.history-drawer {
+.history-drawer,
+.pattern-drawer {
   width: 268px;
   max-width: calc(100% - 28px);
   max-height: calc(100% - 28px);
@@ -671,8 +672,14 @@ button {
 }
 
 .objects-drawer.open,
-.history-drawer.open {
+.history-drawer.open,
+.pattern-drawer.open {
   transform: translateX(0);
+}
+
+.pattern-drawer {
+  left: 296px;
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
 .objects-drawer-heading,
@@ -771,7 +778,7 @@ button {
 
 .object-actions {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 4px;
 }
 
@@ -788,6 +795,31 @@ button {
 
 .object-actions button:hover {
   background: #eaf1f5;
+}
+
+.pattern-panel {
+  min-height: 0;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+.pattern-panel label {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.pattern-panel select {
+  height: 34px;
+  border: 1px solid #b7c2c7;
+  border-radius: 5px;
+  background: white;
+}
+
+.pattern-panel small {
+  color: var(--ink-soft);
+  line-height: 1.35;
 }
 
 .inspector {
@@ -1067,6 +1099,13 @@ button {
 .toggle-row input {
   width: 15px;
   height: 15px;
+}
+
+.quick-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  padding-top: 6px;
 }
 
 .action-button {

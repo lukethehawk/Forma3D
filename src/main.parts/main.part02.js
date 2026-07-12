@@ -126,6 +126,24 @@ function clearShortenPlacement() {
   if (ui.applyShorten) ui.applyShorten.disabled = !model;
 }
 
+function clearSplitPlacement() {
+  if (splitPreview) {
+    scene.remove(splitPreview);
+    disposeObject(splitPreview);
+    splitPreview = null;
+    requestRender();
+  }
+  if (ui.splitInfo) {
+    ui.splitInfo.textContent = t('Taglia il modello con un piano e opzionalmente separa le due meta.');
+  }
+  if (ui.splitReadout) {
+    ui.splitReadout.textContent = t('La linea blu indica il piano di taglio.');
+  }
+  if (ui.applySplit) ui.applySplit.disabled = !model;
+  if (ui.exportSplitNegative) ui.exportSplitNegative.disabled = !model;
+  if (ui.exportSplitPositive) ui.exportSplitPositive.disabled = !model;
+}
+
 function clearHollowState() {
   if (ui.hollowInfo) {
     ui.hollowInfo.textContent = t('Svuota il modello mantenendo la superficie esterna e creando una parete interna.');
@@ -235,6 +253,8 @@ function refreshObjectItems() {
     objectItems = [];
     objectNames = [];
     objectItemsDeferred = false;
+    patternObjectIndex = null;
+    setPatternDrawerOpen(false);
     renderObjectsDrawer();
     return;
   }
@@ -258,7 +278,12 @@ function refreshObjectItems() {
     triangles: component.triangles,
   }));
   objectNames = objectItems.map((item) => item.name);
+  if (patternObjectIndex !== null && !objectItems[patternObjectIndex]) {
+    patternObjectIndex = null;
+    setPatternDrawerOpen(false);
+  }
   renderObjectsDrawer();
+  renderPatternDrawer();
 }
 
 function setObjectsDrawerOpen(open) {
@@ -267,6 +292,29 @@ function setObjectsDrawerOpen(open) {
   ui.objectsDrawer.classList.toggle('open', objectsDrawerOpen);
   ui.objectsDrawer.setAttribute('aria-hidden', String(!objectsDrawerOpen));
   ui.objectsToggle.classList.toggle('active', objectsDrawerOpen);
+}
+
+function setPatternDrawerOpen(open, index = patternObjectIndex) {
+  patternDrawerOpen = Boolean(open);
+  patternObjectIndex = patternDrawerOpen ? index : null;
+  ui.patternDrawer.classList.toggle('open', patternDrawerOpen);
+  ui.patternDrawer.setAttribute('aria-hidden', String(!patternDrawerOpen));
+  renderPatternDrawer();
+}
+
+function renderPatternDrawer() {
+  if (!ui.patternTarget) return;
+  const item = patternObjectIndex !== null ? objectItems[patternObjectIndex] : null;
+  ui.patternTarget.textContent = item
+    ? currentLanguage === 'en'
+      ? `Target: ${item.name} (${item.triangles.length} triangles)`
+      : `Oggetto: ${item.name} (${item.triangles.length} triangoli)`
+    : currentLanguage === 'en'
+      ? 'Select an object from Objects.'
+      : 'Seleziona un oggetto da Oggetti.';
+  const isCircular = ui.patternType?.value === 'circular';
+  if (ui.patternLinearFields) ui.patternLinearFields.hidden = isCircular;
+  if (ui.patternCircularFields) ui.patternCircularFields.hidden = !isCircular;
 }
 
 function defaultHistoryAction() {
@@ -288,7 +336,10 @@ function normalizeHistoryAction(action) {
 
 function setHistoryDrawerOpen(open) {
   historyDrawerOpen = Boolean(open);
-  if (historyDrawerOpen) setObjectsDrawerOpen(false);
+  if (historyDrawerOpen) {
+    setObjectsDrawerOpen(false);
+    setPatternDrawerOpen(false);
+  }
   ui.historyDrawer.classList.toggle('open', historyDrawerOpen);
   ui.historyDrawer.setAttribute('aria-hidden', String(!historyDrawerOpen));
   ui.historyToggle.classList.toggle('active', historyDrawerOpen);
@@ -412,6 +463,7 @@ function renderObjectsDrawer() {
     actions.className = 'object-actions';
     const actionButtons = [
       ['select', currentLanguage === 'en' ? 'Select' : 'Sel.'],
+      ['pattern', currentLanguage === 'en' ? 'Pattern' : 'Serie'],
       ['export', currentLanguage === 'en' ? 'Export' : 'Export'],
       ['delete', currentLanguage === 'en' ? 'Delete' : 'Elimina'],
     ];
@@ -444,6 +496,7 @@ function setModelGeometry(geometry, recordHistory = true, options = {}) {
   clearPlanePlacement();
   clearCutPlacement();
   clearShortenPlacement();
+  clearSplitPlacement();
   clearHollowState();
   clearTextPlacement();
   clearTransformPreview();
@@ -541,6 +594,7 @@ function clearCurrentModel(message = 'Modello rimosso. Apri un STL o crea una nu
   clearPlanePlacement();
   clearCutPlacement();
   clearShortenPlacement();
+  clearSplitPlacement();
   clearTextPlacement();
   clearTransformPreview();
   clearSketch();
@@ -562,6 +616,7 @@ function clearCurrentModel(message = 'Modello rimosso. Apri un STL o crea una nu
   updateModelActions();
   refreshObjectItems();
   setObjectsDrawerOpen(false);
+  setPatternDrawerOpen(false);
   setHistoryDrawerOpen(false);
   updateHistoryButtons();
   setTool('select');
@@ -931,6 +986,146 @@ function transformCurrentModel() {
   );
 }
 
+function currentTransformTarget() {
+  if (!model) return null;
+  if (selected?.type === 'object' && selected.triangles?.length) {
+    const box = selectionBoxFromTriangles(model.geometry, selected.triangles);
+    if (!box) return null;
+    return {
+      box,
+      label: t('oggetto'),
+      triangles: [...selected.triangles],
+    };
+  }
+  model.geometry.computeBoundingBox();
+  return {
+    box: model.geometry.boundingBox.clone(),
+    label: t('tutto file'),
+    triangles: null,
+  };
+}
+
+function transformedTargetBox(target, matrix) {
+  const geometry = target.triangles
+    ? extractTrianglesFromGeometry(model.geometry, target.triangles)
+    : model.geometry.clone();
+  if (!geometry) return null;
+  geometry.applyMatrix4(matrix);
+  geometry.computeBoundingBox();
+  const box = geometry.boundingBox.clone();
+  geometry.dispose();
+  return box;
+}
+
+function applyMatrixToTransformTarget(matrix, title, detail, status) {
+  const target = currentTransformTarget();
+  if (!target) {
+    setStatus('Apri un modello o seleziona un corpo prima di trasformare.');
+    return;
+  }
+  const geometry = target.triangles
+    ? transformTrianglesInGeometry(model.geometry, target.triangles, matrix)
+    : model.geometry.clone();
+  if (!target.triangles) {
+    geometry.applyMatrix4(matrix);
+    geometry.computeVertexNormals();
+    geometry.computeBoundingBox();
+    geometry.computeBoundingSphere();
+  }
+  snapshot({ title: t(title), detail });
+  setModelGeometry(geometry, false, { preserveSketch: true });
+  updateHistoryButtons();
+  resetTransformInputs();
+  requestRender();
+  setStatus(status);
+}
+
+function transformRotationAround(center, quaternion) {
+  const matrix = new THREE.Matrix4();
+  matrix.multiply(new THREE.Matrix4().makeTranslation(center.x, center.y, center.z));
+  matrix.multiply(new THREE.Matrix4().makeRotationFromQuaternion(quaternion));
+  matrix.multiply(new THREE.Matrix4().makeTranslation(-center.x, -center.y, -center.z));
+  return matrix;
+}
+
+function rotateSelectedFaceDown(placeOnGround = false) {
+  if (!model || !transformFaceReference) {
+    setStatus('Seleziona una faccia, poi apri Trasforma per usare questo comando.');
+    return;
+  }
+  const target = currentTransformTarget();
+  if (!target) return;
+  const normal = transformFaceReference.normal.clone().normalize();
+  if (normal.lengthSq() < 1e-8) {
+    setStatus('La faccia selezionata non ha una normale valida.');
+    return;
+  }
+  const center = target.box.getCenter(new THREE.Vector3());
+  const quaternion = new THREE.Quaternion().setFromUnitVectors(normal, new THREE.Vector3(0, 0, -1));
+  const rotationMatrix = transformRotationAround(center, quaternion);
+  let matrix = rotationMatrix;
+  if (placeOnGround) {
+    const rotatedBox = transformedTargetBox(target, rotationMatrix);
+    if (!rotatedBox) return;
+    matrix = new THREE.Matrix4().makeTranslation(0, 0, -rotatedBox.min.z).multiply(rotationMatrix);
+  }
+  applyMatrixToTransformTarget(
+    matrix,
+    'Trasformato corpo',
+    placeOnGround ? t('faccia appoggiata al piano') : t('faccia ruotata in basso'),
+    placeOnGround
+      ? t('Faccia selezionata appoggiata al piano Z=0.')
+      : t('Faccia selezionata ruotata verso il basso.'),
+  );
+  transformFaceReference = null;
+}
+
+function centerTransformTargetOnOrigin() {
+  const target = currentTransformTarget();
+  if (!target) {
+    setStatus('Apri un modello o seleziona un corpo prima di trasformare.');
+    return;
+  }
+  const center = target.box.getCenter(new THREE.Vector3());
+  const matrix = new THREE.Matrix4().makeTranslation(-center.x, -center.y, 0);
+  applyMatrixToTransformTarget(
+    matrix,
+    'Trasformato corpo',
+    t('centrato su origine'),
+    t('Oggetto centrato su origine X/Y.'),
+  );
+}
+
+function scaleTransformTargetToMax() {
+  const target = currentTransformTarget();
+  if (!target) {
+    setStatus('Apri un modello o seleziona un corpo prima di trasformare.');
+    return;
+  }
+  const axis = { x: 0, y: 1, z: 2 }[ui.scaleMaxAxis.value] ?? 2;
+  const targetSize = parseDecimal(ui.scaleMaxValue.value, 0);
+  const size = target.box.getSize(new THREE.Vector3());
+  const currentSize = axisComponent(size, axis);
+  if (!(targetSize > 0) || !(currentSize > 0)) {
+    setStatus('Inserisci una dimensione massima valida.');
+    return;
+  }
+  const scale = targetSize / currentSize;
+  const center = target.box.getCenter(new THREE.Vector3());
+  const matrix = new THREE.Matrix4()
+    .multiply(new THREE.Matrix4().makeTranslation(center.x, center.y, center.z))
+    .multiply(new THREE.Matrix4().makeScale(scale, scale, scale))
+    .multiply(new THREE.Matrix4().makeTranslation(-center.x, -center.y, -center.z));
+  applyMatrixToTransformTarget(
+    matrix,
+    'Trasformato corpo',
+    `${t('scala')} ${formatDecimal(scale)}x, ${t('asse')} ${['X', 'Y', 'Z'][axis]} ${formatMillimeters(targetSize)}`,
+    currentLanguage === 'en'
+      ? `Scaled to ${formatMillimeters(targetSize)} on ${['X', 'Y', 'Z'][axis]}.`
+      : `Scalato a ${formatMillimeters(targetSize)} su ${['X', 'Y', 'Z'][axis]}.`,
+  );
+}
+
 function clearActiveDeleteTarget() {
   if (activeTool === 'measure' && (measurementStart || measurementEnd)) {
     clearMeasurement();
@@ -1095,6 +1290,11 @@ function updateInspector() {
       description: 'Seleziona un oggetto, poi taglialo lungo X, Y o Z scegliendo lunghezza rimossa e centro del taglio.',
       hint: 'Accorcia: seleziona un oggetto con doppio click, poi scegli asse, lunghezza e centro taglio.',
     },
+    split: {
+      title: 'Taglia e separa',
+      description: 'Taglia il modello con un piano, chiude le superfici tagliate ed esporta le due meta se serve.',
+      hint: 'Separa: scegli asse e posizione del piano. Blu = taglio, arancione = separazione.',
+    },
     hollow: {
       title: 'Svuota',
       description: 'Svuota il modello intero impostando lo spessore parete. Mantiene la superficie esterna e crea una superficie interna invertita.',
@@ -1155,15 +1355,16 @@ function updateInspector() {
   ui.planeForm.hidden = activeTool !== 'plane';
   ui.cutForm.hidden = activeTool !== 'cut';
   ui.shortenForm.hidden = activeTool !== 'shorten';
+  ui.splitForm.hidden = activeTool !== 'split';
   ui.hollowForm.hidden = activeTool !== 'hollow';
   ui.textForm.hidden = activeTool !== 'text';
   ui.sketchForm.hidden = activeTool !== 'line';
   ui.measurePanel.hidden = activeTool !== 'measure';
   ui.transformForm.hidden = activeTool !== 'transform';
-  document.querySelector('#selection-info').hidden = ['hole', 'measure', 'movehole', 'box', 'cylinder', 'cone', 'pyramid', 'gear', 'plane', 'cut', 'shorten', 'hollow', 'text', 'line', 'transform'].includes(activeTool);
+  document.querySelector('#selection-info').hidden = ['hole', 'measure', 'movehole', 'box', 'cylinder', 'cone', 'pyramid', 'gear', 'plane', 'cut', 'shorten', 'split', 'hollow', 'text', 'line', 'transform'].includes(activeTool);
   ui.inspector.classList.toggle(
     'open',
-    ['select', 'pushpull', 'hole', 'movehole', 'box', 'cylinder', 'cone', 'pyramid', 'gear', 'plane', 'cut', 'shorten', 'hollow', 'text', 'line', 'measure', 'transform'].includes(activeTool),
+    ['select', 'pushpull', 'hole', 'movehole', 'box', 'cylinder', 'cone', 'pyramid', 'gear', 'plane', 'cut', 'shorten', 'split', 'hollow', 'text', 'line', 'measure', 'transform'].includes(activeTool),
   );
   updateMeasureBoxMode();
 }
@@ -1184,18 +1385,28 @@ function setTool(tool) {
   if (activeTool === 'plane' && tool !== 'plane') clearPlanePlacement();
   if (activeTool === 'cut' && tool !== 'cut') clearCutPlacement();
   if (activeTool === 'shorten' && tool !== 'shorten') clearShortenPlacement();
+  if (activeTool === 'split' && tool !== 'split') clearSplitPlacement();
   if (activeTool === 'hollow' && tool !== 'hollow') clearHollowState();
   if (activeTool === 'text' && tool !== 'text') clearTextPlacement();
   if (activeTool === 'line' && tool !== 'line') clearSketchCurrentLine();
-  if (activeTool === 'transform' && tool !== 'transform') clearTransformPreview();
+  if (activeTool === 'transform' && tool !== 'transform') {
+    clearTransformPreview();
+    transformFaceReference = null;
+  }
   clearSnapIndicator();
   activeTool = tool;
   if (tool === 'measure') clearSelection();
   if (tool === 'transform') {
     if (selected?.type === 'face' && selected.region?.triangles?.length) {
+      transformFaceReference = {
+        normal: selected.normal.clone(),
+        point: selected.point.clone(),
+        seedTriangle: selected.region.triangles[0],
+      };
       setSelectionMode('object', { clear: false, refresh: false });
       selectObjectComponent(selected.region.triangles[0], selected.point);
     } else {
+      transformFaceReference = null;
       setSelectionMode('object', { clear: false, refresh: false });
     }
   }
@@ -1246,6 +1457,11 @@ function setTool(tool) {
     resetShortenDefaults();
     drawShortenPreview();
   }
+  if (tool === 'split') {
+    clearSelection();
+    resetSplitDefaults();
+    drawSplitPreview();
+  }
   if (tool === 'hollow') {
     clearSelection();
     clearHollowState();
@@ -1273,7 +1489,7 @@ function setTool(tool) {
       ? 'grab'
         : tool === 'pan'
           ? 'move'
-          : ['hole', 'measure', 'movehole', 'box', 'cylinder', 'cone', 'pyramid', 'gear', 'plane', 'cut', 'shorten', 'hollow', 'text', 'line'].includes(tool)
+          : ['hole', 'measure', 'movehole', 'box', 'cylinder', 'cone', 'pyramid', 'gear', 'plane', 'cut', 'shorten', 'split', 'hollow', 'text', 'line'].includes(tool)
             ? 'crosshair'
             : 'default';
   updateInspector();
@@ -1290,6 +1506,7 @@ function setTool(tool) {
     plane: 'Piani: clicca il centro, scegli forma e dimensioni, poi applica la faccia piatta.',
     cut: 'Sottrai: scegli box o cilindro, clicca il punto e applica il taglio.',
     shorten: 'Accorcia: seleziona un oggetto con doppio click, poi regola asse, lunghezza e centro taglio.',
+    split: 'Separa: scegli asse e posizione, poi applica o esporta i due lati.',
     hollow: 'Svuota: imposta lo spessore parete e applica al modello intero.',
     text: 'Testo: clicca il punto basso sinistro, poi scrivi e regola profondita e font.',
     line: 'Linea: crea guide indipendenti. Gli altri strumenti si agganciano a estremi, midpoint e segmenti.',
@@ -1489,7 +1706,7 @@ function drawSnapIndicator(pick) {
 }
 
 function updateSnapIndicator(clientX, clientY) {
-  if (!['hole', 'measure', 'movehole', 'box', 'cylinder', 'cone', 'pyramid', 'gear', 'plane', 'cut', 'shorten', 'hollow', 'text', 'line'].includes(activeTool)) {
+  if (!['hole', 'measure', 'movehole', 'box', 'cylinder', 'cone', 'pyramid', 'gear', 'plane', 'cut', 'shorten', 'split', 'hollow', 'text', 'line'].includes(activeTool)) {
     clearSnapIndicator();
     return;
   }
@@ -1681,6 +1898,10 @@ function setSelectedObjectFromTriangles(triangles, point, objectIndex = null) {
   if (activeTool === 'shorten') {
     resetShortenDefaults();
     drawShortenPreview();
+  }
+  if (activeTool === 'split') {
+    resetSplitDefaults();
+    drawSplitPreview();
   }
   return true;
 }

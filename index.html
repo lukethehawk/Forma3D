@@ -199,6 +199,10 @@
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16"/><path d="M8 4v16M16 4v16"/><path d="M10 12h8M15 9l3 3-3 3"/></svg>
               <span>Accorcia</span>
             </button>
+            <button class="tool compact" data-tool="split" title="Taglia e separa">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h6v14H5zM13 5h6v14h-6z"/><path d="M12 3v18"/></svg>
+              <span>Separa</span>
+            </button>
             <button class="tool compact" data-tool="hollow" title="Svuota modello (U)">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M8 10l4-2 4 2v4l-4 2-4-2z"/><path d="M12 8v8"/></svg>
               <span>Svuota</span>
@@ -278,6 +282,60 @@
           </div>
           <div id="objects-list" class="objects-list">
             <span>No bodies</span>
+          </div>
+        </aside>
+        <aside id="pattern-drawer" class="pattern-drawer" aria-label="Pattern object" aria-hidden="true">
+          <div class="objects-drawer-heading">
+            <div>
+              <span class="eyebrow">PATTERN</span>
+              <strong>Duplicate</strong>
+            </div>
+            <button id="pattern-close" class="icon-button" type="button" aria-label="Chiudi">x</button>
+          </div>
+          <div class="pattern-panel">
+            <small id="pattern-target">Select an object from Objects.</small>
+            <label for="pattern-type">Tipo copia</label>
+            <select id="pattern-type">
+              <option value="linear">Lineare</option>
+              <option value="circular">Circolare</option>
+            </select>
+            <label for="pattern-count">Numero copie</label>
+            <div class="field-with-unit">
+              <input id="pattern-count" type="text" inputmode="numeric" min="1" step="1" value="3" />
+              <span>x</span>
+            </div>
+            <div id="pattern-linear-fields" class="offset-grid">
+              <label for="pattern-x" class="axis-x">Distanza X</label>
+              <div class="field-with-unit">
+                <input id="pattern-x" type="text" inputmode="decimal" step="0.1" value="20" />
+                <span>mm</span>
+              </div>
+              <label for="pattern-y" class="axis-y">Distanza Y</label>
+              <div class="field-with-unit">
+                <input id="pattern-y" type="text" inputmode="decimal" step="0.1" value="0" />
+                <span>mm</span>
+              </div>
+              <label for="pattern-z" class="axis-z">Distanza Z</label>
+              <div class="field-with-unit">
+                <input id="pattern-z" type="text" inputmode="decimal" step="0.1" value="0" />
+                <span>mm</span>
+              </div>
+            </div>
+            <div id="pattern-circular-fields" class="offset-grid" hidden>
+              <label for="pattern-radius">Raggio</label>
+              <div class="field-with-unit">
+                <input id="pattern-radius" type="text" inputmode="decimal" min="0.1" step="0.1" value="30" />
+                <span>mm</span>
+              </div>
+              <label for="pattern-axis">Asse</label>
+              <select id="pattern-axis">
+                <option value="z" selected>Z</option>
+                <option value="x">X</option>
+                <option value="y">Y</option>
+              </select>
+            </div>
+            <small id="pattern-readout">Crea copie leggere del corpo selezionato e le aggiunge al modello.</small>
+            <button id="apply-pattern" type="button" class="action-button">Crea pattern</button>
           </div>
         </aside>
         <aside id="history-drawer" class="history-drawer" aria-label="Pannello storia" aria-hidden="true">
@@ -862,6 +920,36 @@
           <button id="apply-hollow" type="button" class="action-button danger" disabled>Svuota modello</button>
         </form>
 
+        <form id="split-form" class="tool-form primitive-form" hidden>
+          <div class="hole-readout">
+            <span>Taglio modello</span>
+            <strong id="split-info">Taglia il modello con un piano e opzionalmente separa le due meta.</strong>
+            <small>Utile per dividere pezzi troppo grandi da stampare. Le due meta possono essere esportate separatamente.</small>
+          </div>
+          <label for="split-axis">Asse piano</label>
+          <select id="split-axis">
+            <option value="x">X</option>
+            <option value="y" selected>Y</option>
+            <option value="z">Z</option>
+          </select>
+          <label for="split-position">Posizione taglio</label>
+          <div class="field-with-unit">
+            <input id="split-position" type="text" inputmode="decimal" step="0.1" value="0" />
+            <span>mm</span>
+          </div>
+          <div class="toggle-row single">
+            <label><input id="split-cap" type="checkbox" checked /> Chiudi superfici tagliate</label>
+          </div>
+          <div class="toggle-row single">
+            <label><input id="split-separate" type="checkbox" checked /> Separa in due corpi</label>
+          </div>
+          <small id="split-readout">La linea blu indica il piano di taglio.</small>
+          <button id="apply-split" type="button" class="action-button danger" disabled>Applica taglio</button>
+          <button id="export-split-negative" type="button" class="secondary-button" disabled>Export lato negativo</button>
+          <button id="export-split-positive" type="button" class="secondary-button" disabled>Export lato positivo</button>
+          <button id="reset-split" type="button" class="secondary-button">Ricomincia</button>
+        </form>
+
         <form id="sketch-form" class="tool-form primitive-form" hidden>
           <div class="hole-readout">
             <span>Guide</span>
@@ -1021,6 +1109,25 @@
               <span>x</span>
             </div>
           </div>
+          <div class="quick-actions">
+            <button id="align-face-ground" type="button" class="secondary-button">Appoggia faccia selezionata</button>
+            <button id="rotate-face-down" type="button" class="secondary-button">Ruota faccia in basso</button>
+            <button id="center-origin" type="button" class="secondary-button">Centra su origine</button>
+          </div>
+          <div class="offset-grid">
+            <label for="scale-max-axis">Scala max asse</label>
+            <select id="scale-max-axis">
+              <option value="x">X</option>
+              <option value="y">Y</option>
+              <option value="z" selected>Z</option>
+            </select>
+            <label for="scale-max-value">Dimensione massima</label>
+            <div class="field-with-unit">
+              <input id="scale-max-value" type="text" inputmode="decimal" min="0.1" step="0.1" value="100" />
+              <span>mm</span>
+            </div>
+          </div>
+          <button id="scale-to-max" type="button" class="secondary-button">Scala alla dimensione</button>
           <small>La preview wireframe si aggiorna in tempo reale. Dopo Applica i valori tornano a zero/scala 1.</small>
           <button id="apply-transform" type="button" class="action-button">Applica trasformazione</button>
         </form>

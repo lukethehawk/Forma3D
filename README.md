@@ -83,9 +83,11 @@ referenced project notices are tracked in
 | `Push/Pull` | Extrude or recess selected planar faces |
 | `Transform` | Move, rotate or scale only the selected body |
 | `Objects` drawer | Open a compact body list from the bottom of the left toolbar |
+| `Pattern` from Objects | Duplicate a selected body in linear or circular series |
 | `Save project` / `Open project` | Store and restore `.forma3d.json` project state |
 | `Repair mesh` | Weld vertices, remove bad triangles and planarize near-flat areas |
 | `Shorten` | Cut an STL along X/Y/Z without scaling and cap the cut where possible |
+| `Split` | Cut the full model with a plane, optionally separate both halves and export each side |
 | `Hollow` | Keep the outer surface and create an inward shell with a wall thickness |
 | `Export STL` / `Export OBJ` | Download the edited mesh |
 | `Export selection` | Download only the selected face or body as STL |
@@ -134,9 +136,13 @@ Navigation:
   drag with `Esc`. On large meshes the preview is simplified, while the numeric
   input remains available.
 - `Transform`: automatically switches to Object mode and edits only the selected
-  connected body.
+  connected body. Quick actions can place a selected face on the print bed,
+  rotate that face downward, center the target on the X/Y origin, or scale it to
+  a maximum X/Y/Z size.
 - `Objects`: opens a collapsible drawer with connected bodies. Rows support
-  rename, select, export and delete without occupying the viewport permanently.
+  rename, select, pattern, export and delete without occupying the viewport
+  permanently. `Pattern` opens a side drawer for linear copies by X/Y/Z distance
+  or circular copies by count, radius and axis.
 - `History`: opens a compact drawer below Objects with the last mesh snapshots.
   It is not a parametric CAD timeline: `Ctrl+Z`/`Ctrl+Y` remain the main undo
   mechanism, and clicking a previous entry jumps back through the same undo/redo
@@ -167,6 +173,7 @@ The `Booleans` menu contains:
 
 - Subtract
 - Shorten
+- Split
 - Hollow
 - Hole
 - Move hole
@@ -181,6 +188,11 @@ the target, Forma3D removes the middle section and closes the gap. If it touches
 an edge, Forma3D automatically turns it into a side cut and keeps the opposite
 side. Very dirty, non-manifold or hollow cross-sections can still need
 slicer/mesh repair checks.
+
+`Split` is a whole-model plane cut for print preparation. It previews the cut
+plane, can cap cut surfaces, can add a small separation gap between the two
+halves, and can export the negative or positive side without applying the split
+to the current scene.
 
 `Hollow` is also mesh-first. It keeps the original outside triangles, creates an
 inner surface offset along averaged vertex normals, reverses the inner winding,
@@ -342,9 +354,11 @@ e le note sui pattern di riferimento sono in
 | `Push/Pull` | Estrude o incide facce piane selezionate |
 | `Transform` | Sposta, ruota o scala solo il corpo selezionato |
 | Drawer `Objects` | Apre una lista compatta dei corpi dalla toolbar sinistra |
+| `Pattern` da Objects | Duplica un corpo selezionato in serie lineare o circolare |
 | `Save project` / `Open project` | Salva e riapre lo stato `.forma3d.json` |
 | `Repair mesh` | Salda vertici, rimuove triangoli difettosi e planarizza aree quasi piatte |
 | `Shorten` | Taglia un STL lungo X/Y/Z senza scalarlo e richiude dove possibile |
+| `Split` | Taglia il modello intero con un piano, separa le meta ed esporta i lati |
 | `Hollow` | Mantiene la superficie esterna e crea un guscio interno con spessore parete |
 | `Export STL` / `Export OBJ` | Scarica la mesh modificata |
 | `Export selection` | Scarica solo la faccia o il corpo selezionato come STL |
@@ -394,14 +408,17 @@ Navigazione:
   con `Esc`. Su mesh grandi la preview viene semplificata, mentre l'input
   numerico resta disponibile.
 - `Transform`: passa automaticamente a Object mode e modifica solo il corpo
-  connesso selezionato.
+  connesso selezionato. Le azioni rapide possono appoggiare una faccia
+  selezionata sul piano di stampa, ruotarla verso il basso, centrare il target
+  sull'origine X/Y o scalarlo a una dimensione massima X/Y/Z.
 - `History`: apre un drawer compatto sotto Oggetti con gli ultimi snapshot mesh.
   Non e' una timeline CAD parametrica: `Ctrl+Z`/`Ctrl+Y` restano il meccanismo
   principale, e cliccare una voce precedente torna indietro usando gli stessi
   stack undo/redo.
 - `Objects`: apre un drawer richiudibile con i corpi connessi. Le righe
-  permettono rinomina, selezione, export ed eliminazione senza occupare il
-  viewport in modo permanente.
+  permettono rinomina, selezione, pattern, export ed eliminazione senza occupare
+  il viewport in modo permanente. `Pattern` apre un drawer laterale per copie
+  lineari tramite distanza X/Y/Z o copie circolari tramite numero, raggio e asse.
 </details>
 
 <details>
@@ -428,6 +445,7 @@ Il menu `Booleans` contiene:
 
 - Sottrai
 - Accorcia
+- Separa
 - Svuota
 - Foro
 - Sposta foro
@@ -442,6 +460,11 @@ volume arancione resta dentro al target, Forma3D rimuove la sezione mediana e
 richiude il vuoto. Se tocca un bordo, Forma3D lo trasforma automaticamente in un
 taglio laterale e mantiene il lato opposto. Sezioni cave molto sporche o
 non-manifold possono richiedere comunque controlli in slicer o riparazione mesh.
+
+`Split/Separa` e' un taglio piano sull'intero modello per preparare pezzi da
+stampare. Mostra la preview del piano, puo chiudere le superfici tagliate,
+aggiungere un piccolo distacco fra le due meta ed esportare lato negativo o
+positivo senza applicare il taglio alla scena corrente.
 
 `Svuota` e' mesh-first. Mantiene i triangoli esterni originali, crea una
 superficie interna spostata lungo le normali medie dei vertici, inverte il
