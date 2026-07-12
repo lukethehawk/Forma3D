@@ -52,6 +52,7 @@ import {
   createCylinderGeometryFromBase,
   createExtrudedPolygonGeometry,
   createGearGeometryFromBase,
+  createJointProfileGeometry,
   createPlaneGeometryFromBase,
   createPyramidGeometryFromBase,
   createPolygonFaceGeometry,
@@ -187,6 +188,8 @@ let gearPreview = null;
 let gearPreviewTimer = null;
 let planePlacement = null;
 let planePreview = null;
+let jointPlacement = null;
+let jointPreview = null;
 let cutPlacement = null;
 let cutPreview = null;
 let shortenPreview = null;
@@ -414,6 +417,22 @@ const ui = {
     document.querySelector('#plane-offset-z'),
   ],
   applyPlane: document.querySelector('#apply-plane'),
+  jointForm: document.querySelector('#joint-form'),
+  jointInfo: document.querySelector('#joint-info'),
+  jointType: document.querySelector('#joint-type'),
+  jointOperation: document.querySelector('#joint-operation'),
+  jointAxis: document.querySelector('#joint-axis'),
+  jointWidth: document.querySelector('#joint-width'),
+  jointHeight: document.querySelector('#joint-height'),
+  jointNeck: document.querySelector('#joint-neck'),
+  jointArc: document.querySelector('#joint-arc'),
+  jointDepth: document.querySelector('#joint-depth'),
+  jointOffsetInputs: [
+    document.querySelector('#joint-offset-x'),
+    document.querySelector('#joint-offset-y'),
+    document.querySelector('#joint-offset-z'),
+  ],
+  applyJoint: document.querySelector('#apply-joint'),
   cutForm: document.querySelector('#cut-form'),
   cutInfo: document.querySelector('#cut-info'),
   cutShape: document.querySelector('#cut-shape'),
@@ -650,6 +669,7 @@ const languageText = {
     movehole: 'Sposta foro',
     line: 'Linea',
     plane: 'Piani',
+    joint: 'Incastro',
     measure: 'Misura',
     transform: 'Trasforma',
     orbit: 'Orbita',
@@ -690,6 +710,7 @@ const languageText = {
     movehole: 'Move hole',
     line: 'Line',
     plane: 'Planes',
+    joint: 'Joint',
     measure: 'Measure',
     transform: 'Transform',
     orbit: 'Orbit',
@@ -1031,6 +1052,33 @@ const staticTranslations = {
     'Piano applicato al modello.': 'Plane applied to the model.',
     'Piano applicato e selezionato. Usa Spingi/Tira per dargli volume.': 'Plane applied and selected. Use Push/Pull to give it volume.',
     'Faccia piana selezionata. Puoi usare subito Spingi/Tira.': 'Flat face selected. You can use Push/Pull immediately.',
+    'Incastro (J)': 'Joint (J)',
+    'Centro incastro': 'Joint center',
+    'Clicca dove vuoi creare il profilo.': 'Click where you want to create the profile.',
+    'Usalo come faccia piatta, oppure estrudilo per aggiungere o sottrarre materiale.': 'Use it as a flat face, or extrude it to add or subtract material.',
+    'Tipo incastro': 'Joint type',
+    Arco: 'Arc',
+    'Coda di rondine': 'Dovetail',
+    'Operazione': 'Operation',
+    'Faccia 2D': '2D face',
+    'Aggiungi solido': 'Add solid',
+    'Larghezza collo': 'Neck width',
+    'Raggio / arco': 'Radius / arc',
+    'Profondita': 'Depth',
+    'Applica incastro': 'Apply joint',
+    Incastro: 'Joint',
+    'Crea profili meccanici piatti o estrusi per linguette, cave e incastri tra pezzi.': 'Create flat or extruded mechanical profiles for tabs, slots and part joints.',
+    'Incastro: clicca il centro, scegli preset e operazione.': 'Joint: click the center, choose preset and operation.',
+    'Incastro in anteprima cancellato.': 'Joint preview cancelled.',
+    'Incastro impostato. Scegli preset, dimensioni e operazione.': 'Joint set. Choose preset, dimensions and operation.',
+    "Imposta prima centro, preset e dimensioni dell'incastro.": 'Set the joint center, preset and dimensions first.',
+    'Applicazione incastro in corso...': 'Applying joint...',
+    'Creato Incastro': 'Joint created',
+    'Incastro applicato come faccia 2D.': 'Joint applied as a 2D face.',
+    'Incastro applicato e selezionato. Usa Spingi/Tira per dargli volume.': 'Joint applied and selected. Use Push/Pull to give it volume.',
+    'Faccia incastro selezionata. Puoi usare subito Spingi/Tira.': 'Joint face selected. You can use Push/Pull immediately.',
+    'Incastro sottratto dal solido.': 'Joint subtracted from the solid.',
+    'Incastro aggiunto al solido.': 'Joint added to the solid.',
     'Figura da sottrarre': 'Shape to subtract',
     'Scegli forma e clicca dove vuoi togliere materiale.': 'Choose a shape and click where you want to remove material.',
     'Anteprima arancione: volume che verra rimosso dallo STL.': 'Orange preview: volume that will be removed from the STL.',
@@ -1384,6 +1432,7 @@ function applyLanguage(language) {
     'movehole',
     'line',
     'plane',
+    'joint',
     'measure',
     'transform',
     'orbit',
@@ -1581,6 +1630,7 @@ function clearTransientOverlays() {
   cylinderPreview = null;
   conePreview = null;
   pyramidPreview = null;
+  jointPreview = null;
   cutPreview = null;
   shortenPreview = null;
   textPreview = null;

@@ -98,6 +98,21 @@ function clearPlanePlacement() {
   ui.applyPlane.disabled = true;
 }
 
+function clearJointPlacement() {
+  jointPlacement = null;
+  if (jointPreview) {
+    scene.remove(jointPreview);
+    disposeObject(jointPreview);
+    jointPreview = null;
+    requestRender();
+  }
+  ui.jointInfo.textContent = t('Clicca dove vuoi creare il profilo.');
+  ui.jointOffsetInputs.forEach((input) => {
+    input.value = '0';
+  });
+  ui.applyJoint.disabled = true;
+}
+
 function clearCutPlacement() {
   cutPlacement = null;
   if (cutPreview) {
@@ -511,6 +526,7 @@ function setModelGeometry(geometry, recordHistory = true, options = {}) {
   clearPyramidPlacement();
   clearGearPlacement();
   clearPlanePlacement();
+  clearJointPlacement();
   clearCutPlacement();
   clearShortenPlacement();
   clearSplitPlacement();
@@ -1254,6 +1270,11 @@ function clearActiveDeleteTarget() {
     setStatus('Piano in anteprima cancellato.');
     return true;
   }
+  if (activeTool === 'joint' && jointPlacement) {
+    clearJointPlacement();
+    setStatus('Incastro in anteprima cancellato.');
+    return true;
+  }
   if (activeTool === 'cut' && cutPlacement) {
     clearCutPlacement();
     setStatus('Figura di taglio cancellata.');
@@ -1362,6 +1383,11 @@ function updateInspector() {
       description: 'Crea rettangoli, quadrati o tondi piatti da usare come facce di partenza.',
       hint: 'Piani: clicca centro e forma. Poi usa Spingi/Tira per dare volume.',
     },
+    joint: {
+      title: 'Incastro',
+      description: 'Crea profili meccanici piatti o estrusi per linguette, cave e incastri tra pezzi.',
+      hint: 'Incastro: clicca il centro, scegli preset e operazione.',
+    },
     cut: {
       title: 'Sottrai solido',
       description: 'Crea un box o un cilindro di taglio e sottrailo dal file STL caricato.',
@@ -1435,6 +1461,7 @@ function updateInspector() {
   ui.pyramidForm.hidden = activeTool !== 'pyramid';
   ui.gearForm.hidden = activeTool !== 'gear';
   ui.planeForm.hidden = activeTool !== 'plane';
+  ui.jointForm.hidden = activeTool !== 'joint';
   ui.cutForm.hidden = activeTool !== 'cut';
   ui.shortenForm.hidden = activeTool !== 'shorten';
   ui.splitForm.hidden = activeTool !== 'split';
@@ -1443,10 +1470,10 @@ function updateInspector() {
   ui.sketchForm.hidden = activeTool !== 'line';
   ui.measurePanel.hidden = activeTool !== 'measure';
   ui.transformForm.hidden = activeTool !== 'transform';
-  document.querySelector('#selection-info').hidden = ['hole', 'measure', 'movehole', 'box', 'cylinder', 'cone', 'pyramid', 'gear', 'plane', 'cut', 'shorten', 'split', 'hollow', 'text', 'line', 'transform'].includes(activeTool);
+  document.querySelector('#selection-info').hidden = ['hole', 'measure', 'movehole', 'box', 'cylinder', 'cone', 'pyramid', 'gear', 'plane', 'joint', 'cut', 'shorten', 'split', 'hollow', 'text', 'line', 'transform'].includes(activeTool);
   ui.inspector.classList.toggle(
     'open',
-    ['select', 'pushpull', 'hole', 'movehole', 'box', 'cylinder', 'cone', 'pyramid', 'gear', 'plane', 'cut', 'shorten', 'split', 'hollow', 'text', 'line', 'measure', 'transform'].includes(activeTool),
+    ['select', 'pushpull', 'hole', 'movehole', 'box', 'cylinder', 'cone', 'pyramid', 'gear', 'plane', 'joint', 'cut', 'shorten', 'split', 'hollow', 'text', 'line', 'measure', 'transform'].includes(activeTool),
   );
   updateMeasureBoxMode();
 }
@@ -1465,6 +1492,7 @@ function setTool(tool) {
   if (activeTool === 'pyramid' && tool !== 'pyramid') clearPyramidPlacement();
   if (activeTool === 'gear' && tool !== 'gear') clearGearPlacement();
   if (activeTool === 'plane' && tool !== 'plane') clearPlanePlacement();
+  if (activeTool === 'joint' && tool !== 'joint') clearJointPlacement();
   if (activeTool === 'cut' && tool !== 'cut') clearCutPlacement();
   if (activeTool === 'shorten' && tool !== 'shorten') clearShortenPlacement();
   if (activeTool === 'split' && tool !== 'split') clearSplitPlacement();
@@ -1524,6 +1552,10 @@ function setTool(tool) {
     clearSelection();
     clearPlanePlacement();
   }
+  if (tool === 'joint') {
+    clearSelection();
+    clearJointPlacement();
+  }
   if (tool === 'cut') {
     clearSelection();
     clearCutPlacement();
@@ -1571,7 +1603,7 @@ function setTool(tool) {
       ? 'grab'
         : tool === 'pan'
           ? 'move'
-          : ['hole', 'measure', 'movehole', 'box', 'cylinder', 'cone', 'pyramid', 'gear', 'plane', 'cut', 'shorten', 'split', 'hollow', 'text', 'line'].includes(tool)
+          : ['hole', 'measure', 'movehole', 'box', 'cylinder', 'cone', 'pyramid', 'gear', 'plane', 'joint', 'cut', 'shorten', 'split', 'hollow', 'text', 'line'].includes(tool)
             ? 'crosshair'
             : 'default';
   updateInspector();
@@ -1586,6 +1618,7 @@ function setTool(tool) {
     pyramid: 'Piramide: clicca il centro base, poi regola base, altezza e asse.',
     gear: 'Ingranaggio: clicca il centro base, poi regola denti, modulo, spessore e foro.',
     plane: 'Piani: clicca il centro, scegli forma e dimensioni, poi applica la faccia piatta.',
+    joint: 'Incastro: clicca il centro, scegli preset e operazione.',
     cut: 'Sottrai: scegli box o cilindro, clicca il punto e applica il taglio.',
     shorten: 'Accorcia: seleziona un oggetto con doppio click, poi regola asse, lunghezza e centro taglio.',
     split: 'Separa: scegli asse e posizione, poi applica o esporta i due lati.',
@@ -1789,7 +1822,7 @@ function drawSnapIndicator(pick) {
 }
 
 function updateSnapIndicator(clientX, clientY) {
-  if (!['hole', 'measure', 'movehole', 'box', 'cylinder', 'cone', 'pyramid', 'gear', 'plane', 'cut', 'shorten', 'split', 'hollow', 'text', 'line'].includes(activeTool)) {
+  if (!['hole', 'measure', 'movehole', 'box', 'cylinder', 'cone', 'pyramid', 'gear', 'plane', 'joint', 'cut', 'shorten', 'split', 'hollow', 'text', 'line'].includes(activeTool)) {
     clearSnapIndicator();
     return;
   }

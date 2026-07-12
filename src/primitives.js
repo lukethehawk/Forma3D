@@ -140,6 +140,98 @@ export function createPlaneGeometryFromBase(
   return normalizeGeometry(geometry);
 }
 
+function localJointProfilePoints(type, options = {}) {
+  const width = Math.max(Number(options.width) || 30, 0.1);
+  const height = Math.max(Number(options.height) || 20, 0.1);
+  const neckWidth = Math.min(Math.max(Number(options.neckWidth) || width * 0.35, 0.1), width * 0.95);
+  const arcBulgeInput = Number.isFinite(Number(options.arcBulge))
+    ? Number(options.arcBulge)
+    : height * 0.35;
+  const arcBulge = Math.min(Math.max(arcBulgeInput, height * 0.05), height * 0.8);
+  const segments = Math.max(8, Math.min(96, Math.floor(Number(options.segments) || 32)));
+  const bottom = -height / 2;
+  const shoulderY = bottom + Math.max(height * 0.18, 0.1);
+  const topY = height / 2;
+  const points = [
+    new THREE.Vector2(-neckWidth / 2, bottom),
+    new THREE.Vector2(neckWidth / 2, bottom),
+    new THREE.Vector2(neckWidth / 2, shoulderY),
+  ];
+
+  if (type === 'dovetail') {
+    points.push(
+      new THREE.Vector2(width / 2, topY),
+      new THREE.Vector2(-width / 2, topY),
+      new THREE.Vector2(-neckWidth / 2, shoulderY),
+    );
+    return points;
+  }
+
+  if (type === 't-slot') {
+    const slotStemHalf = neckWidth / 2;
+    const headHeight = Math.max(height * 0.42, 0.1);
+    const headBottom = topY - headHeight;
+    points.push(
+      new THREE.Vector2(slotStemHalf, headBottom),
+      new THREE.Vector2(width / 2, headBottom),
+      new THREE.Vector2(width / 2, topY),
+      new THREE.Vector2(-width / 2, topY),
+      new THREE.Vector2(-width / 2, headBottom),
+      new THREE.Vector2(-slotStemHalf, headBottom),
+      new THREE.Vector2(-neckWidth / 2, shoulderY),
+    );
+    return points;
+  }
+
+  const halfWidth = width / 2;
+  const centerY = topY - arcBulge;
+  const radius = Math.max(
+    arcBulge,
+    ((halfWidth * halfWidth) + (arcBulge * arcBulge)) / Math.max(2 * arcBulge, 1e-6),
+  );
+  const circleCenterY = topY - radius;
+  const startAngle = Math.atan2(shoulderY - circleCenterY, halfWidth);
+  const endAngle = Math.PI - startAngle;
+  for (let index = 0; index <= segments; index += 1) {
+    const angle = startAngle + ((endAngle - startAngle) * index) / segments;
+    points.push(new THREE.Vector2(
+      Math.cos(angle) * radius,
+      circleCenterY + Math.sin(angle) * radius,
+    ));
+  }
+  points.push(new THREE.Vector2(-neckWidth / 2, shoulderY));
+  return points;
+}
+
+export function createJointProfileGeometry(
+  center,
+  type = 'arc',
+  options = {},
+  axis = new THREE.Vector3(0, 0, 1),
+) {
+  const depth = Math.max(Number(options.depth) || 0, 0);
+  const points = localJointProfilePoints(type, options);
+  const shape = new THREE.Shape();
+  shape.moveTo(points[0].x, points[0].y);
+  for (let index = 1; index < points.length; index += 1) {
+    shape.lineTo(points[index].x, points[index].y);
+  }
+  shape.closePath();
+
+  const geometry = ensureNonIndexed(depth > 0
+    ? new THREE.ExtrudeGeometry(shape, {
+      depth,
+      bevelEnabled: false,
+      steps: 1,
+    })
+    : new THREE.ShapeGeometry(shape));
+  const { direction, xAxis, yAxis } = planeBasisFromNormal(axis);
+  geometry.applyMatrix4(new THREE.Matrix4()
+    .makeBasis(xAxis, yAxis, direction)
+    .setPosition(center));
+  return normalizeGeometry(geometry);
+}
+
 const GEAR_QUALITY = {
   low: { flankSteps: 1, tipSteps: 1, circleSegments: 16 },
   medium: { flankSteps: 2, tipSteps: 2, circleSegments: 32 },

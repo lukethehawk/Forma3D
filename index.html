@@ -232,6 +232,10 @@
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4z"/><path d="M4 8v6l8 4 8-4V8"/></svg>
               <span>Piani</span>
             </button>
+            <button class="tool compact" data-tool="joint" title="Incastro (J)">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18h10v-4l3-5c-2-2-5-3-8-3S6 7 4 9l3 5z"/><path d="M9 18v3h6v-3"/></svg>
+              <span>Incastro</span>
+            </button>
           </div>
         </div>
         <button class="tool" data-tool="measure" title="Misura (M)">
@@ -804,6 +808,77 @@
           </div>
           <button id="apply-plane" type="button" class="action-button" disabled>Applica piano</button>
           <button id="reset-plane" type="button" class="secondary-button">Ricomincia</button>
+        </form>
+
+        <form id="joint-form" class="tool-form primitive-form" hidden>
+          <div class="hole-readout">
+            <span>Centro incastro</span>
+            <strong id="joint-info">Clicca dove vuoi creare il profilo.</strong>
+            <small>Usalo come faccia piatta, oppure estrudilo per aggiungere o sottrarre materiale.</small>
+          </div>
+          <label for="joint-type">Tipo incastro</label>
+          <select id="joint-type">
+            <option value="arc">Arco</option>
+            <option value="dovetail">Coda di rondine</option>
+            <option value="t-slot">T-slot</option>
+          </select>
+          <label for="joint-operation">Operazione</label>
+          <select id="joint-operation">
+            <option value="face">Faccia 2D</option>
+            <option value="add">Aggiungi solido</option>
+            <option value="subtract">Sottrai dal solido</option>
+          </select>
+          <label for="joint-axis">Asse</label>
+          <select id="joint-axis">
+            <option value="face">Piano della faccia</option>
+            <option value="z">Piano XY</option>
+            <option value="x">Piano YZ</option>
+            <option value="y">Piano XZ</option>
+          </select>
+          <div class="offset-grid">
+            <label for="joint-width" class="axis-x">Larghezza</label>
+            <div class="field-with-unit">
+              <input id="joint-width" type="text" inputmode="decimal" min="0.1" step="0.1" value="30" />
+              <span>mm</span>
+            </div>
+            <label for="joint-height" class="axis-y">Altezza</label>
+            <div class="field-with-unit">
+              <input id="joint-height" type="text" inputmode="decimal" min="0.1" step="0.1" value="22" />
+              <span>mm</span>
+            </div>
+            <label for="joint-neck" class="axis-x">Larghezza collo</label>
+            <div class="field-with-unit">
+              <input id="joint-neck" type="text" inputmode="decimal" min="0.1" step="0.1" value="10" />
+              <span>mm</span>
+            </div>
+            <label for="joint-arc" class="axis-y">Raggio / arco</label>
+            <div class="field-with-unit">
+              <input id="joint-arc" type="text" inputmode="decimal" min="0" step="0.1" value="9" />
+              <span>mm</span>
+            </div>
+            <label for="joint-depth" class="axis-z">Profondita</label>
+            <div class="field-with-unit">
+              <input id="joint-depth" type="text" inputmode="decimal" min="0.1" step="0.1" value="5" />
+              <span>mm</span>
+            </div>
+            <label for="joint-offset-x" class="axis-x">Spostamento X</label>
+            <div class="field-with-unit">
+              <input id="joint-offset-x" type="text" inputmode="decimal" step="0.1" value="0" />
+              <span>mm</span>
+            </div>
+            <label for="joint-offset-y" class="axis-y">Spostamento Y</label>
+            <div class="field-with-unit">
+              <input id="joint-offset-y" type="text" inputmode="decimal" step="0.1" value="0" />
+              <span>mm</span>
+            </div>
+            <label for="joint-offset-z" class="axis-z">Spostamento Z</label>
+            <div class="field-with-unit">
+              <input id="joint-offset-z" type="text" inputmode="decimal" step="0.1" value="0" />
+              <span>mm</span>
+            </div>
+          </div>
+          <button id="apply-joint" type="button" class="action-button" disabled>Applica incastro</button>
+          <button id="reset-joint" type="button" class="secondary-button">Ricomincia</button>
         </form>
 
         <form id="cut-form" class="tool-form primitive-form" hidden>

@@ -143,7 +143,7 @@ The vertical toolbar is grouped:
 - direct tools: `Select`, `Push/Pull`, `Measure`, `Transform`, view navigation;
 - `Solids`: `Box`, `Cylinder`, `Cone`, `Pyramid`, `Gear`, `3D Text`;
 - `Booleans`: `Subtract`, `Shorten`, `Split`, `Hollow`, `Hole`, `Move hole`;
-- `2D`: `Line`, `Planes`.
+- `2D`: `Line`, `Planes`, `Joint`.
 - bottom drawer button: `Objects`.
 
 Submenus open to the right with hover/focus. Tool buttons keep `data-tool`, so
@@ -374,6 +374,18 @@ Gear details:
 
 2D planes are real flat STL faces. After applying a plane, the new face is
 selected immediately for Push/Pull.
+
+The `Joint` tool also lives in `2D`. It creates mechanical fit profiles from
+presets (`arc`, `dovetail`, `t-slot`) through `createJointProfileGeometry()` in
+`src/primitives.js`. It can output:
+
+- a flat 2D face, selected immediately for Push/Pull;
+- an extruded add body;
+- an extruded subtract cutter.
+
+This is deliberately preset-based for now. It does not replace a freeform arc
+sketcher; it covers common tabs, slots and keyed interfaces with predictable
+parameters.
 
 ### Shorten / Plane Cut
 
@@ -758,7 +770,7 @@ La toolbar verticale non espone piu' tutte le azioni in una lista piatta:
   `Ingranaggio`, `Testo 3D`;
 - menu `Booleane`: `Sottrai`, `Accorcia`, `Separa`, `Svuota`, `Foro`,
   `Sposta foro`.
-- menu `2D`: `Linea`, `Piani`.
+- menu `2D`: `Linea`, `Piani`, `Incastro`.
 - tasto finale in basso: `Objects`.
 
 I sottomenu sono elementi HTML leggeri che si aprono verso destra con hover o
@@ -1421,7 +1433,21 @@ preferisce la regione con area minore tra gli hit alla stessa profondita: cosi'
 un cerchio o rettangolo disegnato sopra una piastra viene selezionato al posto
 dell'intera faccia grande. Il contorno resta visibile perche i bordi aperti sono
 inclusi nella geometria display, mentre le diagonali/raggi interni coplanari
-restano nascosti.
+vengono nascosti.
+
+Lo strumento `Incastro` vive nello stesso menu `2D` e usa
+`createJointProfileGeometry()` in `src/primitives.js`.
+
+- preset iniziali: `arc`, `dovetail`, `t-slot`;
+- output `face`: crea una faccia 2D piatta e la seleziona subito per
+  `Spingi/Tira`;
+- output `add`: estrude il profilo e lo unisce al modello come solido;
+- output `subtract`: estrude il profilo e lo usa come cutter booleano.
+
+La funzione e' volutamente parametrica/preset-based: copre linguette, cave e
+accoppiamenti ricorrenti senza introdurre ancora un editor libero di archi. La
+versione libera dovra' probabilmente estendere lo sketch 2D con archi e vincoli
+di chiusura piu ricchi.
 
 Per il testo in rilievo sul modello si usa invece `combineGeometries()`:
 concatena i vertici del modello e della scritta senza booleana. E' molto piu'

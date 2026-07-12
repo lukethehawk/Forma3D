@@ -687,6 +687,124 @@ function applyPlane() {
   }
 }
 
+function jointDirectionFromState() {
+  if (!jointPlacement) return new THREE.Vector3(0, 0, 1);
+  return axisDirectionFromPlacement(jointPlacement, ui.jointAxis.value, ui.jointOperation.value);
+}
+
+function jointOptionsFromInputs(forceFlat = false) {
+  const width = parseDecimal(ui.jointWidth.value, 0);
+  const height = parseDecimal(ui.jointHeight.value, 0);
+  const neckWidth = parseDecimal(ui.jointNeck.value, 0);
+  const arcBulge = parseDecimal(ui.jointArc.value, 0);
+  const depth = forceFlat ? 0 : parseDecimal(ui.jointDepth.value, 0);
+  if (!(width > 0) || !(height > 0) || !(neckWidth > 0) || arcBulge < 0) return null;
+  if (!forceFlat && !(depth > 0)) return null;
+  return {
+    arcBulge,
+    depth,
+    height,
+    neckWidth,
+    width,
+  };
+}
+
+function jointGeometryFromState(forceFlat = false) {
+  if (!jointPlacement) return null;
+  const options = jointOptionsFromInputs(forceFlat);
+  if (!options) return null;
+  const base = jointPlacement.basePoint.clone().add(inputVector(ui.jointOffsetInputs));
+  return createJointProfileGeometry(
+    base,
+    ui.jointType.value,
+    options,
+    jointDirectionFromState(),
+  );
+}
+
+function drawJointPreview() {
+  if (!jointPlacement || activeTool !== 'joint') return;
+  const operation = ui.jointOperation.value;
+  const geometry = jointGeometryFromState(operation === 'face');
+  if (!geometry) {
+    ui.applyJoint.disabled = true;
+    return;
+  }
+  const color = operation === 'face' ? 0x1679b8 : operationColor(operation);
+  jointPreview = setPreviewMesh(jointPreview, geometry, color, 'joint-preview');
+  ui.applyJoint.disabled = false;
+}
+
+function setJointPoint(pick) {
+  jointPlacement = {
+    basePoint: pick.point.clone(),
+    normal: pick.normal.clone(),
+  };
+  ui.jointInfo.textContent = `Centro incastro X ${pick.point.x.toFixed(2)}, Y ${pick.point.y.toFixed(2)}, Z ${pick.point.z.toFixed(2)} mm - snap ${pick.snapKind}.`;
+  ui.jointOffsetInputs.forEach((input) => {
+    input.value = '0';
+  });
+  drawJointPreview();
+  setStatus('Incastro impostato. Scegli preset, dimensioni e operazione.');
+}
+
+function jointAt(clientX, clientY) {
+  const pick = pickWorkPoint(clientX, clientY);
+  if (!pick) {
+    setStatus('Clicca sul piano di lavoro o su un solido.');
+    return;
+  }
+  setJointPoint(pick);
+}
+
+function applyJoint() {
+  const operation = ui.jointOperation.value;
+  const geometry = jointGeometryFromState(operation === 'face');
+  if (!geometry) {
+    setStatus('Imposta prima centro, preset e dimensioni dell\'incastro.');
+    return;
+  }
+  const firstJointTriangle = model ? triangleCount(model.geometry) : 0;
+  const selectedPoint = jointPlacement?.basePoint?.clone?.() ?? new THREE.Vector3();
+  const detail = `${ui.jointType.value}, ${formatMillimeters(parseDecimal(ui.jointWidth.value, 0))} x ${formatMillimeters(parseDecimal(ui.jointHeight.value, 0))}`;
+  if (operation === 'face') {
+    const applied = appendGeometryToModel(
+      geometry,
+      'Incastro applicato come faccia 2D.',
+      'Applicazione incastro in corso...',
+      {
+        title: t('Creato Incastro'),
+        detail,
+      },
+    );
+    if (applied) {
+      setSelectionMode('face', { clear: false, refresh: false });
+      setTool('select');
+      try {
+        const region = findCoplanarRegion(model.geometry, firstJointTriangle);
+        selectFaceRegion(region, selectedPoint, {
+          status: 'Incastro applicato e selezionato. Usa Spingi/Tira per dargli volume.',
+          detail: 'Faccia incastro selezionata. Puoi usare subito Spingi/Tira.',
+        });
+      } catch (error) {
+        console.error(`Errore selezione incastro: ${error?.stack ?? error}`);
+        setStatus('Incastro applicato come faccia 2D.');
+      }
+    }
+    return;
+  }
+
+  applyPrimitiveGeometry(
+    geometry,
+    operation,
+    operation === 'subtract' ? 'Incastro sottratto dal solido.' : 'Incastro aggiunto al solido.',
+    {
+      title: operation === 'subtract' ? t('Sottrazione') : t('Creato Incastro'),
+      detail: `${detail}, ${t('Profondita')} ${formatMillimeters(parseDecimal(ui.jointDepth.value, 0))}`,
+    },
+  );
+}
+
 function updateCutFields() {
   const isCylinder = ui.cutShape.value === 'cylinder';
   ui.cutBoxFields.hidden = isCylinder;

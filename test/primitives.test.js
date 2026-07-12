@@ -9,6 +9,7 @@ import {
   createCylinderGeometryFromBase,
   createExtrudedPolygonGeometry,
   createGearGeometryFromBase,
+  createJointProfileGeometry,
   createPlaneGeometryFromBase,
   createPyramidGeometryFromBase,
   createPolygonFaceGeometry,
@@ -77,6 +78,31 @@ test('createPlaneGeometryFromBase creates a flat circle on the requested plane',
   assert.equal(Math.round(geometry.boundingBox.max.x), 2);
   assert.equal(Math.round(geometry.boundingBox.max.y - geometry.boundingBox.min.y), 8);
   assert.equal(Math.round(geometry.boundingBox.max.z - geometry.boundingBox.min.z), 8);
+});
+
+test('createJointProfileGeometry creates a flat arc joint profile', () => {
+  const geometry = createJointProfileGeometry(
+    new THREE.Vector3(0, 0, 3),
+    'arc',
+    { width: 30, height: 20, neckWidth: 10, arcBulge: 8, depth: 0 },
+    new THREE.Vector3(0, 0, 1),
+  );
+  geometry.computeBoundingBox();
+  assert.equal(Math.round(geometry.boundingBox.min.z), 3);
+  assert.equal(Math.round(geometry.boundingBox.max.z), 3);
+  assert.ok(geometry.getAttribute('position').count > 0);
+});
+
+test('createJointProfileGeometry extrudes along the requested axis', () => {
+  const geometry = createJointProfileGeometry(
+    new THREE.Vector3(2, 0, 0),
+    'dovetail',
+    { width: 30, height: 20, neckWidth: 12, depth: 6 },
+    new THREE.Vector3(1, 0, 0),
+  );
+  geometry.computeBoundingBox();
+  assert.equal(Math.round(geometry.boundingBox.min.x), 2);
+  assert.equal(Math.round(geometry.boundingBox.max.x), 8);
 });
 
 test('createGearGeometryFromBase creates a valid default gear', () => {

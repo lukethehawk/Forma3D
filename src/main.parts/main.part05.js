@@ -755,6 +755,28 @@ document.querySelector('#reset-plane').addEventListener('click', () => {
   setStatus('Piani: clicca il centro della faccia piatta.');
 });
 [
+  ui.jointType,
+  ui.jointOperation,
+  ui.jointAxis,
+  ui.jointWidth,
+  ui.jointHeight,
+  ui.jointNeck,
+  ui.jointArc,
+  ui.jointDepth,
+  ...ui.jointOffsetInputs,
+].forEach((input) => {
+  input.addEventListener('input', drawJointPreview);
+  input.addEventListener('change', drawJointPreview);
+});
+ui.applyJoint.addEventListener('click', (event) => {
+  event.preventDefault();
+  applyJoint();
+});
+document.querySelector('#reset-joint').addEventListener('click', () => {
+  clearJointPlacement();
+  setStatus('Incastro: clicca il centro del profilo.');
+});
+[
   ui.cutShape,
   ui.cutWidth,
   ui.cutDepth,
@@ -924,6 +946,7 @@ canvas.addEventListener('pointerup', (event) => {
     else if (activeTool === 'pyramid') pyramidAt(event.clientX, event.clientY);
     else if (activeTool === 'gear') gearAt(event.clientX, event.clientY);
     else if (activeTool === 'plane') planeAt(event.clientX, event.clientY);
+    else if (activeTool === 'joint') jointAt(event.clientX, event.clientY);
     else if (activeTool === 'cut') cutAt(event.clientX, event.clientY);
     else if (activeTool === 'text') textAt(event.clientX, event.clientY);
     else if (activeTool === 'line') sketchAt(event.clientX, event.clientY);
@@ -1003,6 +1026,7 @@ window.addEventListener('keydown', (event) => {
     i: 'pyramid',
     k: 'gear',
     n: 'plane',
+    j: 'joint',
     t: 'cut',
     x: 'shorten',
     u: 'hollow',
