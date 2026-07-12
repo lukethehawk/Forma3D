@@ -432,14 +432,26 @@ ui.objectsList.addEventListener('input', (event) => {
 ui.objectsList.addEventListener('click', (event) => {
   const button = event.target.closest('button[data-action]');
   if (!button) return;
-  const index = Number(button.dataset.index);
+  event.preventDefault();
+  event.stopPropagation();
+  const row = button.closest('.object-row');
+  const index = Number(row?.dataset.index ?? button.dataset.index);
   const action = button.dataset.action;
   if (!Number.isInteger(index)) return;
   if (action === 'select') selectObjectByIndex(index);
   if (action === 'pattern') {
-    selectObjectByIndex(index);
-    setObjectsDrawerOpen(true);
-    setPatternDrawerOpen(true, index);
+    if (!objectItems[index]) {
+      setStatus('Scegli un oggetto dal pannello Oggetti prima di creare un pattern.');
+      return;
+    }
+    const selectedObject = selectObjectByIndex(index);
+    if (selectedObject) {
+      setObjectsDrawerOpen(true);
+      setPatternDrawerOpen(true, index);
+      setStatus(currentLanguage === 'en'
+        ? 'Duplicate options opened for the selected object.'
+        : 'Opzioni Duplica aperte per l\'oggetto selezionato.');
+    }
   }
   if (action === 'export') exportObjectByIndex(index);
   if (action === 'delete') deleteObjectByIndex(index);

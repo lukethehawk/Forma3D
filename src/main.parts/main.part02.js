@@ -295,8 +295,15 @@ function setObjectsDrawerOpen(open) {
 }
 
 function setPatternDrawerOpen(open, index = patternObjectIndex) {
-  patternDrawerOpen = Boolean(open);
-  patternObjectIndex = patternDrawerOpen ? index : null;
+  const nextOpen = Boolean(open);
+  const nextIndex = Number(index);
+  if (nextOpen && (!Number.isInteger(nextIndex) || !objectItems[nextIndex])) {
+    patternDrawerOpen = false;
+    patternObjectIndex = null;
+  } else {
+    patternDrawerOpen = nextOpen;
+    patternObjectIndex = patternDrawerOpen ? nextIndex : null;
+  }
   ui.patternDrawer.classList.toggle('open', patternDrawerOpen);
   ui.patternDrawer.setAttribute('aria-hidden', String(!patternDrawerOpen));
   renderPatternDrawer();

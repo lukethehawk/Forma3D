@@ -749,6 +749,7 @@ const staticTranslations = {
     'Crea pattern': 'Create pattern',
     'Seleziona un oggetto da Oggetti.': 'Select an object from Objects.',
     'Scegli un oggetto dal pannello Oggetti prima di creare un pattern.': 'Choose an object from the Objects panel before creating a pattern.',
+    "Opzioni Duplica aperte per l'oggetto selezionato.": 'Duplicate options opened for the selected object.',
     'Non riesco a leggere il corpo selezionato.': 'I cannot read the selected body.',
     'Inserisci un raggio valido per il pattern circolare.': 'Enter a valid radius for the circular pattern.',
     'Inserisci almeno una distanza X/Y/Z diversa da zero.': 'Enter at least one X/Y/Z distance different from zero.',
