@@ -933,6 +933,8 @@ canvas.addEventListener('pointerup', (event) => {
     } else if (activeTool === 'pushpull') {
       setSelectionMode('face', { clear: false, refresh: false });
       selectAt(event.clientX, event.clientY, 'face');
+    } else if (activeTool === 'transform') {
+      selectTransformReferenceAt(event.clientX, event.clientY);
     }
     else selectAt(event.clientX, event.clientY);
   }
@@ -940,6 +942,7 @@ canvas.addEventListener('pointerup', (event) => {
 canvas.addEventListener('dblclick', (event) => {
   if (appBusy || !['select', 'transform'].includes(activeTool)) return;
   event.preventDefault();
+  if (activeTool === 'transform') transformFaceReference = null;
   setSelectionMode('object', { clear: false, refresh: false });
   selectObjectAt(event.clientX, event.clientY);
 });

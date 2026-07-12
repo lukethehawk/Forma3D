@@ -967,7 +967,7 @@ function transformCurrentModel() {
   }
 
   if (!selected || selected.type !== 'object') {
-    setStatus('Seleziona un oggetto con doppio click prima di trasformarlo.');
+    setStatus('Seleziona una faccia o un corpo prima di trasformarlo.');
     return;
   }
 
@@ -1017,6 +1017,42 @@ function updateTransformQuickActions() {
   ui.rotateFaceDown.disabled = !hasFaceReference;
   ui.centerOrigin.disabled = !hasTarget;
   ui.scaleToMax.disabled = !hasTarget;
+}
+
+function selectTransformReferenceAt(clientX, clientY) {
+  const picked = pickSelectableRegion(clientX, clientY);
+  if (!picked) {
+    clearSelection();
+    transformFaceReference = null;
+    updateTransformQuickActions();
+    setStatus('Trasforma: clicca una faccia per impostare il riferimento.');
+    return;
+  }
+
+  const { hit, region } = picked;
+  const selectionPoint = hit.point?.clone?.() ?? new THREE.Vector3();
+  const selectionNormal = region.normal.clone();
+  if (regionHasOpenBoundary(model.geometry, region)) {
+    const viewDirection = camera.position.clone().sub(selectionPoint);
+    if (viewDirection.lengthSq() > 1e-8 && selectionNormal.dot(viewDirection) < 0) {
+      selectionNormal.negate();
+    }
+  }
+  transformFaceReference = {
+    normal: selectionNormal,
+    point: selectionPoint,
+    seedTriangle: region.triangles[0],
+  };
+  setSelectionMode('object', { clear: false, refresh: false });
+  const selectedBody = selectObjectComponent(region.triangles[0], selectionPoint);
+  if (!selectedBody) {
+    transformFaceReference = null;
+    updateTransformQuickActions();
+    setStatus('Non riesco a selezionare il corpo collegato alla faccia.');
+    return;
+  }
+  setStatus('Faccia di riferimento selezionata. Sposta e scala agiscono sul corpo collegato.');
+  updateTransformQuickActions();
 }
 
 function transformedTargetBox(target, matrix) {
@@ -1353,7 +1389,7 @@ function updateInspector() {
     transform: {
       title: 'Trasforma',
       description: 'Sposta, ruota o scala l\'oggetto selezionato applicando la trasformazione ai vertici STL.',
-      hint: 'Trasforma: doppio click su un corpo, poi inserisci spostamento, rotazione o scala.',
+      hint: 'Trasforma: clicca una faccia come riferimento oppure doppio click sul corpo.',
     },
     orbit: {
       title: 'Orbita',
@@ -1546,7 +1582,7 @@ function setTool(tool) {
     text: 'Testo: clicca il punto basso sinistro, poi scrivi e regola profondita e font.',
     line: 'Linea: crea guide indipendenti. Gli altri strumenti si agganciano a estremi, midpoint e segmenti.',
     measure: 'Misura: clicca il primo punto.',
-    transform: 'Trasforma: seleziona un corpo e applica i valori all\'oggetto.',
+    transform: 'Trasforma: clicca una faccia come riferimento, oppure doppio click sul corpo.',
     orbit: 'Orbita: trascina per ruotare la vista.',
     pan: 'Panoramica: trascina per spostare la vista.',
   };
@@ -1947,6 +1983,7 @@ function setSelectedObjectFromTriangles(triangles, point, objectIndex = null) {
     drawSplitPreview();
   }
   updateTransformQuickActions();
+  if (activeTool === 'transform') drawTransformPreview();
   return true;
 }
 
