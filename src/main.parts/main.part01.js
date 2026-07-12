@@ -189,6 +189,11 @@ let sketchPreviewAxis = null;
 let sketchLengthInput = '';
 let snapIndicator = null;
 let snapPoints = [];
+let pushPullHandle = null;
+let pushPullHandleDrag = null;
+let pushPullHandlePreview = null;
+let pushPullHandleFrameRequest = 0;
+let pushPullHandlePendingDistance = 0;
 const undoStack = [];
 const redoStack = [];
 const raycaster = new THREE.Raycaster();
@@ -239,6 +244,9 @@ const MAX_EDGE_TRIANGLES = 50000;
 const MAX_GEAR_TEETH = 80;
 const MAX_GEAR_TRIANGLES = 12000;
 const MODEL_EDGE_ANGLE = 80;
+const PUSH_PULL_VISUAL_STORAGE_KEY = 'forma3d-pushpull-visual-handle';
+const PUSH_PULL_VISUAL_MODEL_TRIANGLE_LIMIT = 250000;
+const PUSH_PULL_VISUAL_REGION_TRIANGLE_LIMIT = 20000;
 let appBusy = false;
 let renderRequested = false;
 
@@ -274,6 +282,9 @@ const ui = {
   selectForm: document.querySelector('#select-form'),
   selectionMode: document.querySelector('#selection-mode'),
   pushPullForm: document.querySelector('#pushpull-form'),
+  pushPullDistance: document.querySelector('#pushpull-distance'),
+  pushPullVisualHandle: document.querySelector('#pushpull-visual-handle'),
+  pushPullVisualHelp: document.querySelector('#pushpull-visual-help'),
   holeForm: document.querySelector('#hole-form'),
   holeCreateInfo: document.querySelector('#hole-create-info'),
   holeCreateAxis: document.querySelector('#hole-create-axis'),
@@ -721,6 +732,13 @@ const staticTranslations = {
     'Crea foro': 'Create hole',
     Distanza: 'Distance',
     'Valore positivo: tira. Valore negativo: spingi.': 'Positive value: pull. Negative value: push.',
+    'Controllo visuale con freccia': 'Visual arrow control',
+    'Seleziona una faccia e trascina la freccia. Shift aggancia a 1 mm, Esc annulla.': 'Select a face and drag the arrow. Shift snaps to 1 mm, Esc cancels.',
+    'Trascina la freccia: Shift aggancia a 1 mm, Esc annulla.': 'Drag the arrow: Shift snaps to 1 mm, Esc cancels.',
+    'Anteprima Spingi/Tira:': 'Push/Pull preview:',
+    'Spingi/Tira visuale annullato.': 'Visual Push/Pull canceled.',
+    'Spingi/Tira visuale: distanza troppo piccola, nessuna modifica.': 'Visual Push/Pull: distance too small, no change.',
+    'Preview semplificata per mesh grande: rilascio per applicare.': 'Simplified preview for large mesh: release to apply.',
     'Applica Spingi/Tira': 'Apply Push/Pull',
     'Spingi/Tira': 'Push/Pull',
     'Clicca una superficie piana, inserisci la distanza e applica.': 'Click a flat surface, enter the distance, and apply.',
@@ -1035,6 +1053,19 @@ function translateStaticText(language) {
     '#status',
   ].join(','));
   elements.forEach((element) => {
+    if (element.matches('label') && element.querySelector('input')) {
+      let textNode = Array.from(element.childNodes).find((node) => (
+        node.nodeType === Node.TEXT_NODE && node.textContent.trim()
+      ));
+      if (!textNode) {
+        textNode = document.createTextNode('');
+        element.append(textNode);
+      }
+      if (!element.dataset.i18nSource) element.dataset.i18nSource = textNode.textContent.trim();
+      const source = element.dataset.i18nSource;
+      textNode.textContent = ` ${translations?.[source] ?? source}`;
+      return;
+    }
     if (!element.dataset.i18nSource) element.dataset.i18nSource = element.textContent.trim();
     const source = element.dataset.i18nSource;
     element.textContent = translations?.[source] ?? source;
@@ -1218,6 +1249,11 @@ function setupDecimalSteppers() {
 
 setupDecimalSteppers();
 
+if (ui.pushPullVisualHandle) {
+  ui.pushPullVisualHandle.checked = localStorage.getItem(PUSH_PULL_VISUAL_STORAGE_KEY) === 'true';
+  ui.pushPullVisualHelp.hidden = !ui.pushPullVisualHandle.checked;
+}
+
 function createExample() {
   const geometry = new THREE.BoxGeometry(80, 55, 25).toNonIndexed();
   geometry.translate(0, 0, 12.5);
@@ -1228,6 +1264,7 @@ function createExample() {
 }
 
 function clearSelection() {
+  clearPushPullHandle();
   selected = null;
   if (highlight) {
     scene.remove(highlight);
@@ -1311,6 +1348,14 @@ function clearTransientOverlays() {
   transformPreview = null;
   sketchPreview = null;
   snapIndicator = null;
+  if (pushPullHandleFrameRequest) {
+    cancelAnimationFrame(pushPullHandleFrameRequest);
+    pushPullHandleFrameRequest = 0;
+  }
+  if (pushPullHandleDrag) controls.enabled = pushPullHandleDrag.controlsEnabled;
+  pushPullHandle = null;
+  pushPullHandlePreview = null;
+  pushPullHandleDrag = null;
 }
 
 function clearMeasurement(resetPanel = true) {

@@ -897,6 +897,9 @@ function updateInspector() {
   ui.selectForm.hidden = activeTool !== 'select';
   ui.selectionMode.value = selectionMode;
   ui.pushPullForm.hidden = activeTool !== 'pushpull';
+  if (ui.pushPullVisualHelp) {
+    ui.pushPullVisualHelp.hidden = activeTool !== 'pushpull' || !pushPullVisualEnabled();
+  }
   ui.holeForm.hidden = activeTool !== 'hole';
   ui.moveHoleForm.hidden = activeTool !== 'movehole';
   ui.boxForm.hidden = activeTool !== 'box';
@@ -925,6 +928,7 @@ function setTool(tool) {
     fitView();
     return;
   }
+  if (activeTool === 'pushpull' && tool !== 'pushpull') clearPushPullHandle();
   if (activeTool === 'hole' && tool !== 'hole') clearHoleCreate();
   if (activeTool === 'movehole' && tool !== 'movehole') clearHoleMove();
   if (activeTool === 'box' && tool !== 'box') clearBoxPlacement();
@@ -1047,6 +1051,7 @@ function setTool(tool) {
     pan: 'Panoramica: trascina per spostare la vista.',
   };
   if (statusByTool[tool]) setStatus(t(statusByTool[tool]));
+  if (tool === 'pushpull') refreshPushPullHandle();
 }
 
 function raycastModel(clientX, clientY) {
@@ -1488,6 +1493,7 @@ function selectFaceRegion(region, point, options = {}) {
   ui.inspector.classList.add('open');
   updateModelActions();
   setStatus(t(status));
+  refreshPushPullHandle();
 }
 
 function selectAt(clientX, clientY, mode = selectionMode) {

@@ -614,6 +614,251 @@ function applyMoveHole() {
   }
 }
 
+function pushPullVisualEnabled() {
+  return Boolean(ui.pushPullVisualHandle?.checked);
+}
+
+function selectedRegionCenter() {
+  if (!model || !selected?.region?.triangles?.length) return selected?.point?.clone?.() ?? new THREE.Vector3();
+  const position = model.geometry.getAttribute('position');
+  const keys = new Set();
+  const center = new THREE.Vector3();
+  const point = new THREE.Vector3();
+  let count = 0;
+  for (const triangle of selected.region.triangles) {
+    for (let corner = 0; corner < 3; corner += 1) {
+      point.fromBufferAttribute(position, triangle * 3 + corner);
+      const key = `${point.x.toFixed(5)},${point.y.toFixed(5)},${point.z.toFixed(5)}`;
+      if (keys.has(key)) continue;
+      keys.add(key);
+      center.add(point);
+      count += 1;
+    }
+  }
+  return count ? center.multiplyScalar(1 / count) : selected.point.clone();
+}
+
+function pushPullHandleLength() {
+  if (!model) return 30;
+  const box = new THREE.Box3().setFromObject(model);
+  const size = box.getSize(new THREE.Vector3()).length();
+  return THREE.MathUtils.clamp(size * 0.12, 24, 90);
+}
+
+function clearPushPullPreview() {
+  if (pushPullHandleFrameRequest) {
+    cancelAnimationFrame(pushPullHandleFrameRequest);
+    pushPullHandleFrameRequest = 0;
+  }
+  if (!pushPullHandlePreview) return;
+  scene.remove(pushPullHandlePreview);
+  disposeObject(pushPullHandlePreview);
+  pushPullHandlePreview = null;
+  requestRender();
+}
+
+function clearPushPullHandle() {
+  clearPushPullPreview();
+  if (pushPullHandle) {
+    scene.remove(pushPullHandle);
+    disposeObject(pushPullHandle);
+    pushPullHandle = null;
+  }
+  if (pushPullHandleDrag?.pointerId != null) {
+    try {
+      canvas.releasePointerCapture(pushPullHandleDrag.pointerId);
+    } catch {
+      // Pointer capture may already be released by the browser.
+    }
+  }
+  if (pushPullHandleDrag) controls.enabled = pushPullHandleDrag.controlsEnabled;
+  pushPullHandleDrag = null;
+  requestRender();
+}
+
+function createPushPullHandle(origin, normal) {
+  const direction = normal.clone().normalize();
+  const length = pushPullHandleLength();
+  const group = new THREE.Group();
+  group.position.copy(origin).addScaledVector(direction, 0.45);
+  group.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), direction);
+  group.userData.pushPullHandle = true;
+  group.userData.origin = origin.clone();
+  group.userData.normal = direction.clone();
+
+  const material = new THREE.MeshBasicMaterial({
+    color: 0x0b84d8,
+    depthTest: false,
+    depthWrite: false,
+  });
+  const tipMaterial = new THREE.MeshBasicMaterial({
+    color: 0xff7a22,
+    depthTest: false,
+    depthWrite: false,
+  });
+  const hitMaterial = new THREE.MeshBasicMaterial({
+    color: 0xff7a22,
+    transparent: true,
+    opacity: 0.08,
+    depthTest: false,
+    depthWrite: false,
+  });
+
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, length * 0.7, 16), material);
+  shaft.position.z = length * 0.35;
+  const cone = new THREE.Mesh(new THREE.ConeGeometry(3.8, 8, 24), tipMaterial);
+  cone.position.z = length * 0.76;
+  const hit = new THREE.Mesh(new THREE.SphereGeometry(7, 18, 12), hitMaterial);
+  hit.position.z = length * 0.82;
+  hit.userData.pushPullHandleHit = true;
+
+  for (const child of [shaft, cone, hit]) {
+    child.renderOrder = 80;
+    child.userData.pushPullHandle = true;
+    group.add(child);
+  }
+  return group;
+}
+
+function refreshPushPullHandle() {
+  clearPushPullHandle();
+  if (activeTool !== 'pushpull' || !pushPullVisualEnabled() || !model || selected?.type !== 'face') return;
+  const normal = selected.normal.clone().normalize();
+  if (normal.lengthSq() < 1e-8) return;
+  pushPullHandle = createPushPullHandle(selectedRegionCenter(), normal);
+  scene.add(pushPullHandle);
+  ui.pushPullVisualHelp.hidden = false;
+  setStatus('Trascina la freccia: Shift aggancia a 1 mm, Esc annulla.');
+  requestRender();
+}
+
+function shouldUseLightPushPullPreview() {
+  const totalTriangles = currentModelInfo?.triangles ?? (model ? triangleCount(model.geometry) : 0);
+  return totalTriangles > PUSH_PULL_VISUAL_MODEL_TRIANGLE_LIMIT
+    || (selected?.region?.triangles?.length ?? 0) > PUSH_PULL_VISUAL_REGION_TRIANGLE_LIMIT;
+}
+
+function drawPushPullPreview(distance) {
+  pushPullHandleFrameRequest = 0;
+  clearPushPullPreview();
+  if (!model || selected?.type !== 'face' || Math.abs(distance) < 0.01) return;
+  if (shouldUseLightPushPullPreview()) {
+    setStatus('Preview semplificata per mesh grande: rilascio per applicare.');
+    return;
+  }
+  const geometry = createPushPullRegionGeometry(model.geometry, selected.region, distance);
+  const material = new THREE.MeshBasicMaterial({
+    color: distance >= 0 ? 0x25a85a : 0xe46f2b,
+    transparent: true,
+    opacity: 0.34,
+    side: THREE.DoubleSide,
+    depthTest: false,
+    depthWrite: false,
+  });
+  pushPullHandlePreview = new THREE.Mesh(geometry, material);
+  pushPullHandlePreview.renderOrder = 45;
+  scene.add(pushPullHandlePreview);
+  requestRender();
+}
+
+function schedulePushPullPreview(distance) {
+  pushPullHandlePendingDistance = distance;
+  if (pushPullHandleFrameRequest) return;
+  pushPullHandleFrameRequest = requestAnimationFrame(() => {
+    drawPushPullPreview(pushPullHandlePendingDistance);
+  });
+}
+
+function startPushPullHandleDrag(event) {
+  if (activeTool !== 'pushpull' || !pushPullVisualEnabled() || !pushPullHandle || appBusy) return false;
+  setRayFromPointer(event.clientX, event.clientY);
+  const hits = raycaster.intersectObjects(pushPullHandle.children, true);
+  if (!hits.length) return false;
+
+  const origin = pushPullHandle.userData.origin.clone();
+  const normal = pushPullHandle.userData.normal.clone().normalize();
+  const viewDirection = camera.getWorldDirection(new THREE.Vector3()).normalize();
+  const dragPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(viewDirection, origin);
+  const startPoint = raycaster.ray.intersectPlane(dragPlane, new THREE.Vector3());
+  const box = model ? new THREE.Box3().setFromObject(model) : null;
+  const pixelScale = Math.max((box?.getSize(new THREE.Vector3()).length() ?? 100) / 360, 0.08);
+  const screenNormal = normal.clone().projectOnPlane(viewDirection);
+  const useMouseFallback = !startPoint || Math.abs(normal.dot(viewDirection)) > 0.82 || screenNormal.lengthSq() < 0.02;
+
+  pushPullHandleDrag = {
+    pointerId: event.pointerId,
+    origin,
+    normal,
+    dragPlane,
+    startPoint,
+    startClientY: event.clientY,
+    startDistance: 0,
+    currentDistance: 0,
+    pixelScale,
+    useMouseFallback,
+    controlsEnabled: controls.enabled,
+  };
+  controls.enabled = false;
+  canvas.setPointerCapture?.(event.pointerId);
+  event.preventDefault();
+  event.stopPropagation();
+  return true;
+}
+
+function updatePushPullHandleDrag(event) {
+  if (!pushPullHandleDrag) return false;
+  let distance = pushPullHandleDrag.startDistance;
+  if (pushPullHandleDrag.useMouseFallback) {
+    distance += (pushPullHandleDrag.startClientY - event.clientY) * pushPullHandleDrag.pixelScale;
+  } else {
+    setRayFromPointer(event.clientX, event.clientY);
+    const point = raycaster.ray.intersectPlane(pushPullHandleDrag.dragPlane, new THREE.Vector3());
+    if (point) distance += point.sub(pushPullHandleDrag.startPoint).dot(pushPullHandleDrag.normal);
+  }
+  if (event.shiftKey) distance = Math.round(distance);
+  if (!Number.isFinite(distance)) return true;
+
+  pushPullHandleDrag.currentDistance = distance;
+  ui.pushPullDistance.value = formatDecimal(distance);
+  ui.measureValue.value = `${formatDecimal(distance)} mm`;
+  setStatus(`${t('Anteprima Spingi/Tira:')} ${formatDecimal(distance)} mm.`);
+  schedulePushPullPreview(distance);
+  event.preventDefault();
+  return true;
+}
+
+function finishPushPullHandleDrag(event) {
+  if (!pushPullHandleDrag) return false;
+  const distance = pushPullHandleDrag.currentDistance;
+  const pointerId = pushPullHandleDrag.pointerId;
+  const controlsEnabled = pushPullHandleDrag.controlsEnabled;
+  clearPushPullHandle();
+  controls.enabled = controlsEnabled;
+  try {
+    canvas.releasePointerCapture?.(pointerId);
+  } catch {
+    // Pointer capture can be gone after cancel or browser focus changes.
+  }
+  event.preventDefault();
+  if (!Number.isFinite(distance) || Math.abs(distance) < 0.05) {
+    setStatus('Spingi/Tira visuale: distanza troppo piccola, nessuna modifica.');
+    return true;
+  }
+  applyPushPull(distance);
+  return true;
+}
+
+function cancelPushPullHandleDrag() {
+  if (!pushPullHandleDrag) return false;
+  clearPushPullPreview();
+  const { controlsEnabled } = pushPullHandleDrag;
+  pushPullHandleDrag = null;
+  controls.enabled = controlsEnabled;
+  refreshPushPullHandle();
+  setStatus('Spingi/Tira visuale annullato.');
+  return true;
+}
+
 function applyPushPull(distance) {
   if (!selected || !model || selected.type !== 'face') {
     setStatus(t(selected?.type === 'object'
@@ -625,6 +870,7 @@ function applyPushPull(distance) {
     setStatus('Inserisci una distanza diversa da zero.');
     return;
   }
+  clearPushPullHandle();
   if (
     regionHasOpenBoundary(model.geometry, selected.region)
     && regionHasCoplanarSupport(model.geometry, selected.region)

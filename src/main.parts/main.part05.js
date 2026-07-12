@@ -621,7 +621,13 @@ document.querySelector('#reset-hole').addEventListener('click', () => {
 });
 ui.pushPullForm.addEventListener('submit', (event) => {
   event.preventDefault();
-  applyPushPull(parseDecimal(document.querySelector('#pushpull-distance').value, 0));
+  applyPushPull(parseDecimal(ui.pushPullDistance.value, 0));
+});
+ui.pushPullVisualHandle?.addEventListener('change', () => {
+  localStorage.setItem(PUSH_PULL_VISUAL_STORAGE_KEY, ui.pushPullVisualHandle.checked ? 'true' : 'false');
+  ui.pushPullVisualHelp.hidden = !ui.pushPullVisualHandle.checked;
+  if (ui.pushPullVisualHandle.checked) refreshPushPullHandle();
+  else clearPushPullHandle();
 });
 ui.measureValue.addEventListener('focus', () => {
   if (activeTool !== 'line' || !sketchPoints.length || sketchClosed) return;
@@ -650,10 +656,18 @@ ui.redo.addEventListener('click', () => restoreFrom(redoStack, undoStack));
 
 canvas.addEventListener('pointerdown', (event) => {
   if (appBusy) return;
+  if (event.button === 0 && startPushPullHandleDrag(event)) {
+    pointerDown = null;
+    return;
+  }
   pointerDown = { x: event.clientX, y: event.clientY };
 });
 canvas.addEventListener('pointerup', (event) => {
   if (appBusy) return;
+  if (finishPushPullHandleDrag(event)) {
+    pointerDown = null;
+    return;
+  }
   if (!pointerDown) return;
   const movement = Math.hypot(event.clientX - pointerDown.x, event.clientY - pointerDown.y);
   pointerDown = null;
@@ -688,14 +702,23 @@ canvas.addEventListener('dblclick', (event) => {
 });
 canvas.addEventListener('pointermove', (event) => {
   if (appBusy) return;
+  if (updatePushPullHandleDrag(event)) return;
   updateSnapIndicator(event.clientX, event.clientY);
   previewMeasurement(event.clientX, event.clientY);
   previewSketch(event.clientX, event.clientY);
+});
+canvas.addEventListener('pointercancel', () => {
+  cancelPushPullHandleDrag();
+  pointerDown = null;
 });
 canvas.addEventListener('contextmenu', (event) => event.preventDefault());
 
 window.addEventListener('keydown', (event) => {
   if (appBusy) {
+    event.preventDefault();
+    return;
+  }
+  if (event.key === 'Escape' && cancelPushPullHandleDrag()) {
     event.preventDefault();
     return;
   }

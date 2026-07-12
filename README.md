@@ -128,7 +128,11 @@ Navigation:
 
 - `Select`: single click selects a face; double click selects the clicked body.
 - `Push/Pull`: works on selected planar faces. New 2D planes are automatically
-  selected as faces so they can be pushed/pulled immediately.
+  selected as faces so they can be pushed/pulled immediately. The optional
+  visual arrow control lets you drag along the face normal, previews the
+  extrusion/recess before release, snaps to 1 mm with `Shift`, and cancels the
+  drag with `Esc`. On large meshes the preview is simplified, while the numeric
+  input remains available.
 - `Transform`: automatically switches to Object mode and edits only the selected
   connected body.
 - `Objects`: opens a collapsible drawer with connected bodies. Rows support
@@ -361,7 +365,11 @@ Navigazione:
 - `Select`: click singolo seleziona una faccia; doppio click seleziona il corpo
   cliccato.
 - `Push/Pull`: lavora su facce piane selezionate. I nuovi piani 2D vengono
-  selezionati automaticamente come facce.
+  selezionati automaticamente come facce. Il controllo visuale opzionale con
+  freccia permette di trascinare lungo la normale della faccia, vedere una
+  preview prima del rilascio, agganciare a 1 mm con `Shift` e annullare il drag
+  con `Esc`. Su mesh grandi la preview viene semplificata, mentre l'input
+  numerico resta disponibile.
 - `Transform`: passa automaticamente a Object mode e modifica solo il corpo
   connesso selezionato.
 - `Objects`: apre un drawer richiudibile con i corpi connessi. Le righe
