@@ -60,6 +60,25 @@ function findTrianglesByNormal(geometry, predicate) {
   return result;
 }
 
+function countTrianglesOnAxisPlane(geometry, axisName, value, tolerance = 1e-6) {
+  const axisIndex = { x: 0, y: 1, z: 2 }[axisName] ?? 0;
+  const position = geometry.getAttribute('position');
+  const index = geometry.getIndex();
+  let count = 0;
+  for (let triangle = 0; triangle < triangleCount(geometry); triangle += 1) {
+    let coplanar = true;
+    for (let corner = 0; corner < 3; corner += 1) {
+      const vertexIndex = index ? index.getX(triangle * 3 + corner) : triangle * 3 + corner;
+      if (Math.abs(position.getComponent(vertexIndex, axisIndex) - value) > tolerance) {
+        coplanar = false;
+        break;
+      }
+    }
+    if (coplanar) count += 1;
+  }
+  return count;
+}
+
 function uniqueAxisValues(geometry, axis) {
   const position = geometry.getAttribute('position');
   const values = new Set();
@@ -240,6 +259,31 @@ test('cutPlaneGeometry can cut without cap for advanced/debug workflows', () => 
   result.geometry.computeBoundingBox();
   assert.ok(Math.abs(result.geometry.boundingBox.min.x) < 1e-6);
   assert.ok(Math.abs(result.geometry.boundingBox.max.x - 5) < 1e-6);
+});
+
+test('cutPlaneGeometry can discard coplanar source faces for split exports', () => {
+  const box = new THREE.BoxGeometry(10, 8, 6).toNonIndexed();
+  const sheet = new THREE.BufferGeometry();
+  sheet.setAttribute('position', new THREE.Float32BufferAttribute([
+    0, -2, -2,
+    0, 2, -2,
+    0, 2, 2,
+    0, -2, -2,
+    0, 2, 2,
+    0, -2, 2,
+  ], 3));
+  const geometry = combineGeometries([box, sheet]);
+  const result = cutPlaneGeometry(geometry, {
+    axis: 'x',
+    cap: false,
+    discardCoplanarFaces: true,
+    keepSide: 'positive',
+    position: 0,
+  });
+
+  assert.ok(result);
+  assert.equal(countTrianglesOnAxisPlane(result.geometry, 'x', 0), 0);
+  assert.ok(result.report.removedTriangles >= 2);
 });
 
 test('cutPlaneGeometry returns null when the kept side is empty', () => {

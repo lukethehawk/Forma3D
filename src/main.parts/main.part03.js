@@ -1175,6 +1175,7 @@ function splitHalfGeometry(side) {
   const result = cutPlaneGeometry(model.geometry, {
     axis: state.axisKey,
     cap: state.cap,
+    discardCoplanarFaces: true,
     keepSide: side,
     position: state.position,
   });
@@ -1218,12 +1219,14 @@ async function applySplit() {
     const negative = cutPlaneGeometry(model.geometry, {
       axis: state.axisKey,
       cap: state.cap,
+      discardCoplanarFaces: true,
       keepSide: 'negative',
       position: state.position,
     });
     const positive = cutPlaneGeometry(model.geometry, {
       axis: state.axisKey,
       cap: state.cap,
+      discardCoplanarFaces: true,
       keepSide: 'positive',
       position: state.position,
     });

@@ -1284,6 +1284,13 @@ export function cutPlaneGeometry(geometry, options = {}) {
   for (let triangle = 0; triangle < total; triangle += 1) {
     const points = [0, 1, 2].map((corner) => vertexAt(geometry, triangle, corner, new THREE.Vector3()));
     const distances = points.map((point) => keepSign * (planeAxisValue(point, axis) - planePosition));
+    const isCoplanarSourceFace = options.discardCoplanarFaces === true
+      && distances.every((distance) => Math.abs(distance) <= tolerance);
+    if (isCoplanarSourceFace) {
+      removedTriangles += 1;
+      continue;
+    }
+
     const insideCount = distances.filter((distance) => distance >= -tolerance).length;
 
     if (insideCount === 3) {
