@@ -391,7 +391,7 @@ e le note sui pattern di riferimento sono in
 | `G` | Trasforma |
 | `O` | Orbita |
 | `Canc` | Cancella anteprima, guida, faccia o corpo selezionato |
-| `Ctrl+Z` / `Ctrl+Y` / `Ctrl+Shift+Z` | Annulla / ripristina |
+| `Ctrl+Z` / `Ctrl+Y` / `Ctrl+Shift+Z` | Annulla / rifai |
 
 Navigazione:
 
@@ -418,8 +418,8 @@ Navigazione:
   sull'origine X/Y o scalarlo a una dimensione massima X/Y/Z.
 - `History`: apre un drawer compatto sotto Oggetti con gli ultimi snapshot mesh.
   Non e' una timeline CAD parametrica: `Ctrl+Z` resta il meccanismo principale
-  di annulla, `Ctrl+Y` o `Ctrl+Shift+Z` ripristinano, e cliccare una voce
-  precedente torna indietro usando gli stessi stack undo/redo.
+  di annulla, `Ctrl+Y` o `Ctrl+Shift+Z` rifanno l'azione annullata, e cliccare
+  una voce precedente torna indietro usando gli stessi stack undo/redo.
 - `Objects`: apre un drawer richiudibile con i corpi connessi. Le righe
   permettono rinomina, selezione, pattern, export ed eliminazione senza occupare
   il viewport in modo permanente. `Pattern` apre un drawer laterale per copie

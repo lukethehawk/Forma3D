@@ -445,7 +445,7 @@ function restoreToHistoryIndex(index) {
   }
   if (steps > 0) {
     updateHistoryButtons();
-    setStatus('Modifica ripristinata.');
+    setStatus('Passaggio cronologia applicato.');
   }
 }
 
@@ -591,7 +591,7 @@ function restoreFrom(source, destination, options = {}) {
   setModelGeometry(geometry, false, { preserveSketch: true });
   ui.fileName.textContent = currentFileName;
   updateHistoryButtons();
-  if (!options.silent) setStatus('Modifica ripristinata.');
+  if (!options.silent) setStatus('Passaggio cronologia applicato.');
 }
 
 function updateHistoryButtons() {

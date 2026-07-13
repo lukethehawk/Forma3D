@@ -694,7 +694,7 @@ il file come mesh triangolare e offre strumenti pratici:
 - strumento Linea per sagome chiuse estrudibili;
 - strumento Testo 3D con font, profondita, larghezza lettere ed effetti;
 - misura tra punti con componenti X, Y, Z;
-- annulla/ripristina;
+- annulla/rifai;
 - rimozione del modello corrente;
 - cancellazione con `Canc` di superfici, corpi selezionati o anteprime attive.
 - export completo STL/OBJ ed export STL della selezione.
@@ -847,7 +847,7 @@ Il controller principale usa variabili di stato semplici:
   triangles }` per un corpo connesso.
 - `activeTool`: strumento attivo.
 - `currentFileName`: nome usato per esportare.
-- `undoStack` / `redoStack`: cloni di geometrie per annulla/ripristina.
+- `undoStack` / `redoStack`: cloni di geometrie per annulla/rifai.
 - `snapPoints`: vertici raccolti dalla geometria corrente.
 - stati temporanei degli strumenti: `holeCreate`, `holeMove`, `boxPlacement`,
   `cylinderPlacement`, `conePlacement`, `pyramidPlacement`, `planePlacement`,
@@ -1026,7 +1026,7 @@ l'app.
 `clearCurrentModel()` e' la funzione interna usata anche quando la cancellazione
 di superfici elimina tutti i triangoli.
 
-## Annulla e ripristina
+## Annulla e rifai
 
 La storia conserva cloni di `BufferGeometry` e metadati UI leggeri.
 
@@ -1722,7 +1722,7 @@ Shortcut principali:
 - doppio click in `Select` o `Transform`: seleziona corpo;
 - `Canc`: cancella anteprima, faccia o corpo selezionato;
 - `Ctrl+Z`: annulla.
-- `Ctrl+Y` / `Ctrl+Shift+Z`: ripristina.
+- `Ctrl+Y` / `Ctrl+Shift+Z`: rifai.
 
 ## Problemi noti e limiti
 
